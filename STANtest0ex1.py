@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np, pandas as pd, matplotlib.pyplot as plt, seaborn as sns, arviz as az, pystan
+import numpy as np, pandas as pd, matplotlib.pyplot as plt, seaborn as sns, arviz as az, pystan, scipy
 
 #%% data
 
