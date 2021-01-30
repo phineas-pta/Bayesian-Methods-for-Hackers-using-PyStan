@@ -1,1 +1,3 @@
-# Bayesian-Methods-for-Hackers-using-PyStan
+the book *Probabilistic Programming & Bayesian Methods for Hackers* ported to PyStan
+
+just code, not notebook
