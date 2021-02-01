@@ -58,7 +58,7 @@ fit_pooled = sm_pooled.sampling(
 	data = {'N': N, 'x': floor_measure, 'y': log_radon},
 	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1
 )
-print(fit_pooled)
+print(fit_pooled.stansummary())
 
 # unpooled model
 sm_unpooled = pystan.StanModel(model_name = "unpooled_mdl", model_code = """
@@ -90,7 +90,7 @@ fit_unpooled = sm_unpooled.sampling(
 	data = {'N': N, 'J': counties, 'county': county, 'x': floor_measure, 'y': log_radon},
 	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1
 )
-print(fit_unpooled)
+print(fit_unpooled.stansummary())
 
 # partial pooling model
 sm_partial_pooling = pystan.StanModel(model_name = "partial_pooling_mdl", model_code = """
@@ -124,7 +124,7 @@ fit_partial_pooling = sm_partial_pooling.sampling(
 	data = {'N': N, 'J': counties, 'county': county, 'y': log_radon},
 	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1
 )
-print(fit_partial_pooling)
+print(fit_partial_pooling.stansummary())
 
 # varying intercept model
 sm_varying_intercept = pystan.StanModel(model_name = "varying_intercept_mdl", model_code = """
@@ -162,7 +162,7 @@ fit_varying_intercept = sm_varying_intercept.sampling(
 	data = {'N': N, 'J': counties, 'county': county, 'x': floor_measure, 'y': log_radon},
 	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1
 )
-print(fit_varying_intercept)
+print(fit_varying_intercept.stansummary())
 
 # varying slope model
 sm_varying_slope = pystan.StanModel(model_name = "varying_slope_mdl", model_code = """
@@ -200,7 +200,7 @@ fit_varying_slope = sm_varying_slope.sampling(
 	data = {'N': N, 'J': counties, 'county': county, 'x': floor_measure, 'y': log_radon},
 	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1
 )
-print(fit_varying_slope)
+print(fit_varying_slope.stansummary())
 
 # varying intercept and slope model
 sm_varying_intercept_slope = pystan.StanModel(model_name = "varying_intercept_slope_mdl", model_code = """
@@ -234,7 +234,7 @@ fit_varying_intercept_slope = sm_varying_intercept_slope.sampling(
 	data = {'N': N, 'J': counties, 'county': county, 'x': floor_measure, 'y': log_radon},
 	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1
 )
-print(fit_varying_intercept_slope)
+print(fit_varying_intercept_slope.stansummary())
 
 # hierarchical intercept model
 sm_hierarchical_intercept = pystan.StanModel(model_name = "hierarchical_intercept_mdl", model_code = """
@@ -275,7 +275,7 @@ fit_hierarchical_intercept = sm_hierarchical_intercept.sampling(
 	data = {'N': N, 'J': counties, 'county': county, 'u': u, 'x': floor_measure, 'y': log_radon},
 	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1
 )
-print(fit_hierarchical_intercept)
+print(fit_hierarchical_intercept.stansummary())
 
 # contextual effect
 sm_contextual_effect = pystan.StanModel(model_name = "contextual_effect_mdl", model_code = """
@@ -313,7 +313,7 @@ fit_contextual_effect = sm_contextual_effect.sampling(
 	data = {'N': N, 'J': counties, 'county': county, 'u': u, 'x_mean': x_mean, 'x': floor_measure, 'y': log_radon},
 	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1
 )
-print(fit_contextual_effect)
+print(fit_contextual_effect.stansummary())
 
 # prediction
 stl = 'ST LOUIS'
@@ -365,7 +365,7 @@ fit_contextual_pred = sm_contextual_pred.sampling(
 		'stl': i_stl, 'u_stl': np.unique(u[srrs_mn.county == stl])[0], 'xbar_stl': xbar[i_stl]
 	}, iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1, pars = ["y_stl"]
 )
-print(fit_contextual_pred)
+print(fit_contextual_pred.stansummary())
 
 sample_contextual_pred = fit_contextual_pred.extract(permuted = True) # all chains are merged and warmup samples are discarded
 sns.displot(sample_contextual_pred['y_stl'], bins = "sqrt", kde = True)

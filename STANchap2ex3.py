@@ -9,6 +9,7 @@ n1_coin_flip = rng.binomial(1, coin, size = N) # unknown
 n2_coin_flip = rng.binomial(1, coin, size = N) # unknown
 observed_yes = n1_coin_flip * true_answers + (1 - n1_coin_flip) * n2_coin_flip
 n_yes = np.sum(observed_yes)
+mdl_data = {"N": N, "occur": n_yes}
 
 # EXPLAINATION why prob_yes = .5*prob_cheat + .5² (0.5 = prob flip coin)
 # ┬ cheat = no  ┬ 1st flip = tails ┬ 2nd flip = tails » answer = no
@@ -50,12 +51,12 @@ sm = pystan.StanModel(model_name = "simple_mdl", model_code = """
 		occur ~ binomial(N, prob_yes);
 	}
 """)
-
+optim = sm.optimizing(data = mdl_data)
 fit = sm.sampling(
-	data = {"N": N, "occur": n_yes}, pars = ["prob_cheat"], n_jobs = -1, # parallel
+	data = mdl_data, pars = ["prob_cheat"], n_jobs = -1, # parallel
 	iter = 50000, chains = 10, warmup = 10000, thin = 5
 )
-print(fit)
+print(fit.stansummary())
 fit.extract(permuted = False).shape # iterations, chains, parameters
 posterior = fit.extract(permuted = True) # all chains are merged and warmup samples are discarded
 

@@ -43,14 +43,17 @@ sm_ols = pystan.StanModel(model_name = "mdl_ols", model_code = model_data_stan +
 		Y ~ normal(Yhat, sigmaY);
 	}
 """)
+optim_ols = sm_ols.optimizing(data = model_data_dict)
 fit_ols = sm_ols.sampling(
 	data = model_data_dict, pars = var_name,
 	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1 # parallel
 )
-print(fit_ols)
+print(fit_ols.stansummary())
 sample_ols = fit_ols.extract(permuted = True) # all chains are merged and warmup samples are discarded
 
-az.plot_trace(az.from_pystan(posterior = fit_ols))
+az_trace_ols = az.from_pystan(posterior = fit_ols)
+az.summary(az_trace_ols)
+az.plot_trace(az_trace_ols)
 
 gd = sns.jointplot(
 	x = sample_ols["b0"], y = sample_ols["b1"],
@@ -72,14 +75,17 @@ sm_studentt = pystan.StanModel(model_name = "mdl_studentt", model_code = model_d
 		Y ~ student_t(df, Yhat, sigmaY);
 	}
 """)
+optim_studentt = sm_studentt.optimizing(data = model_data_dict)
 fit_studentt = sm_studentt.sampling(
 	data = model_data_dict, pars = var_name + ["b0", "b1"],
 	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1 # parallel
 )
-print(fit_studentt)
+print(fit_studentt.stansummary())
 sample_studentt = fit_studentt.extract(permuted = True) # all chains are merged and warmup samples are discarded
 
-az.plot_trace(az.from_pystan(posterior = fit_studentt))
+az_trace_studentt = az.from_pystan(posterior = fit_studentt)
+az.summary(az_trace_studentt)
+az.plot_trace(az_trace_studentt)
 
 # Linear Model with Custom Likelihood to Distinguish Outliers: Hogg Method
 # idea: mixture model whereby datapoints can be: normal linear model vs outlier (for convenience also be linear)
@@ -106,14 +112,17 @@ sm_hogg = pystan.StanModel(model_name = "mdl_hogg", model_code = model_data_stan
 		}
 	}
 """)
+optim_hogg = sm_hogg.optimizing(data = model_data_dict)
 fit_hogg = sm_hogg.sampling(
 	data = model_data_dict, pars = var_name + ["Y_outlier", "sigmaY_outlier", "cluster_prob"],
 	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1 # parallel
 )
-print(fit_hogg)
+print(fit_hogg.stansummary())
 sample_hogg = fit_hogg.extract(permuted = True) # all chains are merged and warmup samples are discarded
 
-az.plot_trace(az.from_pystan(posterior = fit_hogg))
+az_trace_hogg = az.from_pystan(posterior = fit_hogg)
+az.summary(az_trace_hogg)
+az.plot_trace(az_trace_hogg)
 
 #%% some plots
 

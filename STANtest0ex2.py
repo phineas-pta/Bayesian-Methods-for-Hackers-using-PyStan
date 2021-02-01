@@ -3,7 +3,7 @@
 import numpy as np, pandas as pd, pystan, arviz as az, matplotlib.pyplot as plt
 
 baseball = pd.read_csv("https://www.swarthmore.edu/NatSci/peverso1/Sports%20Data/JamesSteinData/Efron-Morris%20Baseball/EfronMorrisBB.txt", sep = "\t")
-
+mdl_data = {"N": len(baseball), "at_bats": baseball["At-Bats"].values, "hits": baseball["Hits"].values}
 sm = pystan.StanModel(model_name = "std_mdl", model_code = """
 	data {
 		int<lower=0> N;
@@ -30,12 +30,12 @@ sm = pystan.StanModel(model_name = "std_mdl", model_code = """
 		hits ~ binomial(at_bats, thetas);
 	}
 """)
-
+optim = sm.optimizing(data = mdl_data)
 fit = sm.sampling(
-	data = {"N": len(baseball), "at_bats": baseball["At-Bats"].values, "hits": baseball["Hits"].values},
-	pars = ["kappa", "phi", "thetas"], iter = 50000, chains = 10, warmup = 10000, thin = 5, n_jobs = -1 # parallel
+	data = mdl_data, pars = ["kappa", "phi", "thetas"], n_jobs = -1, # parallel
+	iter = 50000, chains = 2, warmup = 10000, thin = 5, # not too much chains for a smaller plot
 )
-print(fit)
+print(fit.stansummary())
 fit.extract(permuted = False).shape # iterations, chains, parameters
 posterior = fit.extract(permuted = True) # all chains are merged and warmup samples are discarded
 

@@ -7,7 +7,6 @@ count_data = np.array([
     19, 23, 27, 20,  6, 17, 13, 10, 14,  6, 16, 15,  7,  2, 15, 15, 19, 70, 49,  7, 53, 22, 21, 31, 19, 11, 18, 20,
     12, 35, 17, 23, 17,  4,  2, 31, 30, 13, 27,  0, 39, 37,  5, 14, 13, 22,
 ])
-
 mdl_data = {"N": len(count_data), "obs": count_data}
 
 # original model: slower
@@ -42,12 +41,12 @@ sm = pystan.StanModel(model_name = "std_mdl", model_code = """
 		}
 	}
 """)
-
+optim = sm.optimizing(data = mdl_data)
 fit = sm.sampling(
 	data = mdl_data, n_jobs = -1, # parallel
 	iter = 50000, chains = 3, warmup = 10000, thin = 5
 )
-print(fit)
+print(fit.stansummary())
 fit.extract(permuted = False).shape # iterations, chains, parameters
 posterior = fit.extract(permuted = True) # all chains are merged and warmup samples are discarded
 
@@ -101,4 +100,4 @@ fit_modif = sm_modif.sampling(
 	data = mdl_data, n_jobs = -1, pars = ["lambda1", "lambda2", "tau"],
 	iter = 50000, chains = 3, warmup = 10000, thin = 5
 )
-print(fit_modif)
+print(fit_modif.stansummary())
