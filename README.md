@@ -1,4 +1,4 @@
-the book *Probabilistic Programming & Bayesian Methods for Hackers* ported to PyStan
+re-write of HMC code in the book *Probabilistic Programming & Bayesian Methods for Hackers* to PyStan2
 
 just code, not notebook
 
