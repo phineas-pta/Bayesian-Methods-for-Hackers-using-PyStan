@@ -33,13 +33,14 @@ g.map(sns.histplot, 'value', bins = "sqrt", kde = True)
 
 mdl_data = {"N": len(stock_returns), "N_stocks": len(stock_names), "observations": stock_returns.values}
 sm = pystan.StanModel(model_name = "simple_mdl", model_code = """
-	data {
+	data { // avoid putting data in matrix except for linear algebra
 		int<lower=0> N;
 		int<lower=0> N_stocks;
-		matrix[N, N_stocks] observations;
+		row_vector[N_stocks] observations[N];
 	}
 
 	transformed data {
+		int<lower=2+N_stocks> df = 10;
 		row_vector[N_stocks] expert_mus = [-.03, .05, .03, -.02];
 		matrix<lower=0>[N_stocks, N_stocks] expert_sigmas = diag_matrix(square([.04, .03, .02, .01]'));
 	}
@@ -55,8 +56,8 @@ sm = pystan.StanModel(model_name = "simple_mdl", model_code = """
 
 	model {
 		locs ~ normal(expert_mus, 1);
-		covs ~ wishart(10, expert_sigmas);
-		for (i in 1:N) observations[i] ~ multi_normal_cholesky(locs, L); // failed to initialize if not use Cholesky
+		covs ~ wishart(df, expert_sigmas);
+		observations ~ multi_normal_cholesky(locs, L); // failed to initialize if not use Cholesky
 	}
 """)
 fit = sm.sampling(
@@ -67,14 +68,68 @@ print(fit.stansummary())
 fit.extract(permuted = False).shape # iterations, chains, parameters
 posterior = fit.extract(permuted = True) # all chains are merged and warmup samples are discarded
 
+colors = ['#5DA5DA', '#F15854', '#B276B2', '#60BD68']
 fig = plt.figure(figsize = (16, 9))
-for i, val in enumerate(stock_names):
+ax1 = fig.add_subplot(121)
+ax2 = fig.add_subplot(122)
+for i in range(len(stock_names)):
+	sns.kdeplot(posterior["locs"][:,i], color = colors[i], ax = ax1)
+	sns.kdeplot(posterior["covs"][:,i,i], color = colors[i], ax = ax2)
+ax1.legend(labels = stock_names)
+ax1.set_title(r"$ \mu $")
+ax2.legend(labels = stock_names)
+ax2.set_title(r"$ \sigma $")
 
-	ax = fig.add_subplot(2, 4, i+1)
-	sns.histplot(posterior["locs"][:,i], bins = "sqrt", kde = True, ax = ax)
-	ax.set_title(f"$ {val}: \\mu $")
+# reparameterization for more efficient computation: Bartlett decomposition
+sm_repar = pystan.StanModel(model_name = "repar_mdl", model_code = """
+	data { // avoid putting data in matrix except for linear algebra
+		int<lower=0> N;
+		int<lower=0> N_stocks;
+		row_vector[N_stocks] observations[N];
+	}
 
-	ax = fig.add_subplot(2, 4, 4+i+1)
-	sns.histplot(posterior["covs"][:,i,i], bins = "sqrt", kde = True, ax = ax)
-	ax.set_title(f"$ {val}: \\sigma $")
+	transformed data {
+		int<lower=2+N_stocks> df = 10;
+		row_vector[N_stocks] expert_mus = [-.03, .05, .03, -.02];
+		matrix<lower=0>[N_stocks, N_stocks] expert_sigmas = diag_matrix(square([.04, .03, .02, .01]'));
+		cholesky_factor_cov[N_stocks] L = cholesky_decompose(expert_sigmas);
+	}
 
+	parameters { // discrete parameters impossible
+		row_vector[N_stocks] locs;
+		vector[N_stocks] c;
+		vector[N_stocks * (N_stocks - 1) / 2] z;
+	}
+
+	transformed parameters {
+		matrix[N_stocks, N_stocks] A;
+		{ // extra layer of brackes let us define a local int for the loop
+			int count = 1;
+			for (j in 1:(N_stocks-1)) {
+				for (i in (j+1):N_stocks) {
+					A[i,j] = z[count];
+					count += 1;
+				}
+				for (i in 1:(j-1)) A[i,j] = 0;
+				A[j, N_stocks] = 0;
+				A[j,j] = sqrt(c[j]);
+			}
+			A[N_stocks, N_stocks] = sqrt(c[N_stocks]);
+		}
+	}
+
+	model {
+		for (i in 1:N_stocks) c[i] ~ chi_square(df - i + 1);
+		z ~ std_normal();
+		locs ~ normal(expert_mus, 1);
+		observations ~ multi_normal_cholesky(locs, L*A);
+	}
+""")
+fit_repar = sm_repar.sampling(
+	data = mdl_data, pars = ["locs", "A"], n_jobs = -1, # parallel
+	iter = 50000, chains = 3, warmup = 10000, thin = 5
+)
+posterior_repar = fit_repar.extract(permuted = True)
+L_repar = np.linalg.cholesky(np.diag([.04, .03, .02, .01]))
+f = lambda a: L_repar @ a @ a.T @ L_repar.T
+covs = np.array([f(a) for a in posterior_repar["A"]])

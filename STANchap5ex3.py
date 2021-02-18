@@ -49,10 +49,10 @@ sm = pystan.StanModel(model_name = "Tim_Salimans", model_code = """
 		}
 	}
 
-	data {
+	data { // avoid putting data in matrix except for linear algebra
 		int<lower=0> N;
-		matrix<lower=0, upper=4200>[N, 2] galaxies; // 2 columns: x, y
-		matrix<lower=-1, upper=1>[N, 2] ellipticity;
+		row_vector<lower=0, upper=4200>[2] galaxies[N]; // galaxy position (x, y)
+		row_vector<lower=-1, upper=1>[2] ellipticity[N]; // 2 ellpty
 	}
 
 	transformed data {
@@ -62,7 +62,7 @@ sm = pystan.StanModel(model_name = "Tim_Salimans", model_code = """
 
 	parameters { // discrete parameters impossible
 		real<lower=0> mass_large; // large halo mass, log uniform does not work ?
-		matrix<lower=0, upper=4200>[N_halos, 2] halo_pos; // halo position (x, y)
+		row_vector<lower=0, upper=4200>[2] halo_pos[N_halos]; // halo position (x, y)
 	}
 
 	transformed parameters {
@@ -84,7 +84,7 @@ nchain = 3
 fit = sm.sampling( # very very slow
 	data = mdl_data, pars = ["halo_pos"], # control = {"adapt_delta": .95},
 	iter = 50000, chains = nchain, warmup = 10000, thin = 5, n_jobs = -1, # parallel
-	init = [{"mass_large": 80, "halo_pos": [[2100]*2]*3}] * nchain # must have init, otherwise failed
+	init = [{"mass_large": 80, "halo_pos": [[1000, 500], [2100, 1500], [3500, 4000]]}] * nchain # must have init, otherwise failed
 )
 print(fit.stansummary())
 fit.extract(permuted = False).shape # iterations, chains, parameters
