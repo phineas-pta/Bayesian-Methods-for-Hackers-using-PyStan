@@ -1,6 +1,8 @@
 re-write of HMC code in the book *Probabilistic Programming & Bayesian Methods for Hackers* to PyStan2
 
-just code, not notebook
+original book: https://github.com/CamDavidsonPilon/Probabilistic-Programming-and-Bayesian-Methods-for-Hackers
+
+here are just code, not notebook, comments whatsoever
 
 **DISCLAIMER**: just an attempt, so not official, neither guaranteed to work on your machine
 
