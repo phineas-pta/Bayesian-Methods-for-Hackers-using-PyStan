@@ -3,9 +3,9 @@
 import numpy as np, pandas as pd, pystan, arviz as az, matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 
-halo_data = pd.read_csv("DarkWorlds/Training_halos.csv")
+halo_data = pd.read_csv("data/DarkWorlds/Training_halos.csv")
 SkyID = 215 # take an example from train data
-data_sky = pd.read_csv(f"DarkWorlds/Train_Skies/Training_Sky{SkyID}.csv")
+data_sky = pd.read_csv(f"data/DarkWorlds/Train_Skies/Training_Sky{SkyID}.csv")
 data_sky[["e1", "e2"]].std()
 
 # plot sky + halo

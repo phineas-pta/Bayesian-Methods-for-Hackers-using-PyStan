@@ -4,10 +4,10 @@ import numpy as np, pandas as pd, pystan, arviz as az, matplotlib.pyplot as plt,
 
 #%% data
 
-srrs2 = pd.read_csv("https://raw.githubusercontent.com/pymc-devs/pymc3/master/pymc3/tests/data/srrs2.dat")
+srrs2 = pd.read_csv("data/srrs2.dat")
 srrs2['fips'] = srrs2['stfips']*1000 + srrs2['cntyfips']
 
-cty = pd.read_csv("https://raw.githubusercontent.com/pymc-devs/pymc3/master/pymc3/tests/data/cty.dat")
+cty = pd.read_csv("data/cty.dat")
 cty['fips'] = cty['stfips']*1000 + cty['ctfips']
 
 srrs_mn = srrs2[srrs2.state=='MN'].merge(cty[cty.st=='MN'][['fips', 'Uppm']], on='fips').drop_duplicates(subset='idnum')

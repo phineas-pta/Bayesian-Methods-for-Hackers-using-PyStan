@@ -2,7 +2,7 @@
 
 import numpy as np, scipy, pystan, arviz as az, matplotlib.pyplot as plt
 
-data = np.loadtxt("https://raw.githubusercontent.com/CamDavidsonPilon/Probabilistic-Programming-and-Bayesian-Methods-for-Hackers/master/Chapter3_MCMC/data/mixture_data.csv")
+data = np.loadtxt("data/mixture_data.csv")
 mdl_data = {"N": len(data), "obs": data}
 
 sm = pystan.StanModel(model_name = "std_mdl", model_code = """
@@ -44,7 +44,7 @@ print(fit.stansummary())
 fit.extract(permuted = False).shape # iterations, chains, parameters
 posterior = fit.extract(permuted = True) # all chains are merged and warmup samples are discarded
 
-az_trace = az.from_pystan(posterior = fit)
+az_trace = az.from_pystan(posterior = fit, compact = True)
 az.summary(az_trace)
 az.plot_trace(az_trace)
 

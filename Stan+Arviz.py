@@ -35,14 +35,14 @@ sm_prior = pystan.StanModel(model_code = """
 		vector[N] slack_comments_hat;
 		vector[N] github_commits_hat;
 
-		b0 = normal_rng(0,200);
-		b1 = normal_rng(0,200);
-		b_sigma = abs(normal_rng(0,300));
+		b0 = normal_rng(0, 200);
+		b1 = normal_rng(0, 200);
+		b_sigma = abs(normal_rng(0, 300));
 		log_b_sigma = log(b_sigma);
 
-		c0 = normal_rng(0,10);
-		c1 = normal_rng(0,10);
-		c_sigma = fabs(normal_rng(0,6));
+		c0 = normal_rng(0, 10);
+		c1 = normal_rng(0, 10);
+		c_sigma = fabs(normal_rng(0, 6));
 		log_c_sigma = log(b_sigma);
 
 		for (n in 1:N) {

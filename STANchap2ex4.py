@@ -2,7 +2,7 @@
 
 import numpy as np, pandas as pd, pystan, arviz as az, seaborn as sns, matplotlib.pyplot as plt
 
-raw_data = pd.read_csv("https://raw.githubusercontent.com/CamDavidsonPilon/Probabilistic-Programming-and-Bayesian-Methods-for-Hackers/master/Chapter2_MorePyMC/data/challenger_data.csv")
+raw_data = pd.read_csv("data/challenger_data.csv")
 raw_data["Date"] = pd.to_datetime(raw_data["Date"], infer_datetime_format=True)
 
 # pop last row -> drop missing -> change dtype

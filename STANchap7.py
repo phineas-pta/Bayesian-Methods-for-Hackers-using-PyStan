@@ -2,7 +2,7 @@
 
 import numpy as np, pandas as pd, pystan, arviz as az, prince
 
-data = pd.read_csv("overfitting.csv", index_col = 'case_id')
+data = pd.read_csv("data/overfitting.csv", index_col = 'case_id')
 data.columns
 predictors = data[data.columns[data.columns.str.startswith("var_")]]
 labels = data["Target_Practice"]

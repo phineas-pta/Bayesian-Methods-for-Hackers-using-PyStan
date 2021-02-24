@@ -2,7 +2,7 @@
 
 import numpy as np, pandas as pd, pystan, arviz as az, matplotlib.pyplot as plt
 
-baseball = pd.read_csv("https://www.swarthmore.edu/NatSci/peverso1/Sports%20Data/JamesSteinData/Efron-Morris%20Baseball/EfronMorrisBB.txt", sep = "\t")
+baseball = pd.read_csv("data/EfronMorrisBB.txt", sep = "\t")
 mdl_data = {"N": len(baseball), "at_bats": baseball["At-Bats"].values, "hits": baseball["Hits"].values}
 sm = pystan.StanModel(model_name = "std_mdl", model_code = """
 	data {
