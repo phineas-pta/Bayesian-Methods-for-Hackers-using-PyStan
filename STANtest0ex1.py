@@ -60,7 +60,7 @@ gd = sns.jointplot(
 	marginal_kws={"kde": True, "kde_kws": {"cut": 1}},
 )
 gd.plot_joint(sns.kdeplot, zorder = 2, n_levels = 10, cmap = "gray_r")
-gd.fig.suptitle("Posterior joint distribution (mdl_studentt)", y = 1.02)
+gd.fig.suptitle("Posterior joint distribution (OLS)", y = 1.02)
 
 # Simple Linear Model with Robust Student-T Likelihood: outliers to have a smaller influence in the likelihood estimation
 sm_studentt = pystan.StanModel(model_name = "mdl_studentt", model_code = model_data_stan + """
@@ -77,7 +77,7 @@ sm_studentt = pystan.StanModel(model_name = "mdl_studentt", model_code = model_d
 """)
 optim_studentt = sm_studentt.optimizing(data = model_data_dict)
 fit_studentt = sm_studentt.sampling(
-	data = model_data_dict, pars = var_name + ["b0", "b1"],
+	data = model_data_dict, pars = var_name + ["df"],
 	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1 # parallel
 )
 print(fit_studentt.stansummary())
