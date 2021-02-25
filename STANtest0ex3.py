@@ -19,7 +19,7 @@ radon = srrs_mn['activity'].values
 
 county = srrs_mn['county'].replace(county_lookup).values
 N = len(srrs_mn)
-log_radon = np.log(radon + .1)
+log_radon = np.log(radon + .1) # +0.1 to make log scale
 floor_measure = srrs_mn['floor'].values.astype('float')
 counties = len(mn_counties)
 u = np.log(srrs_mn['Uppm'].values)
@@ -365,7 +365,5 @@ fit_contextual_pred = sm_contextual_pred.sampling(
 		'stl': i_stl, 'u_stl': np.unique(u[srrs_mn.county == stl])[0], 'xbar_stl': xbar[i_stl]
 	}, iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1, pars = ["y_stl"]
 )
-print(fit_contextual_pred.stansummary())
-
-sample_contextual_pred = fit_contextual_pred.extract(permuted = True) # all chains are merged and warmup samples are discarded
-sns.displot(sample_contextual_pred['y_stl'], bins = "sqrt", kde = True)
+sample_contextual_pred = np.exp(fit_contextual_pred.extract(permuted = True)['y_stl'])
+sns.displot(sample_contextual_pred, bins = "sqrt", kde = True)
