@@ -93,7 +93,7 @@ ax2.set_title(r"$ \sigma $")
 
 # reparameterization for more efficient computation: Bartlett decomposition
 modelfile_repar = "stocks_repar.stan"
-with open(modelfile, "w") as file: file.write("""
+with open(modelfile_repar, "w") as file: file.write("""
 	data { // avoid putting data in matrix except for linear algebra
 		int<lower=0> N;
 		int<lower=0> N_stocks;
