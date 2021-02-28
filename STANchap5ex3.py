@@ -50,6 +50,20 @@ with open(modelfile, "w") as file: file.write("""
 			real angle = 2 * atan2(delta[2], delta[1]); // angle of the galaxy with respect to the dark matter centre
 			return [-cos(angle), -sin(angle)];
 		}
+
+		real partial_sum( // model very slow => parallelization (reduce with summation)
+			row_vector[] ellipticity_slice, int start, int end, int N_halos,
+			row_vector[] galaxies, row_vector[] halo_pos, row_vector mass_halos, row_vector cste_f_dist
+		) {
+			real res = 0;
+			for (i in start:end) {
+				row_vector[2] ellpty_mvn_loc = [0, 0];
+				for (j in 1:N_halos)
+					ellpty_mvn_loc += tangential_distance(galaxies[i], halo_pos[j]) * mass_halos[j] / f_dist(galaxies[i], halo_pos[j], cste_f_dist[j]);
+				res += normal_lpdf(ellipticity_slice[i] | ellpty_mvn_loc, 0.223607);
+			}
+			return res;
+		}
 	}
 
 	data { // avoid putting data in matrix except for linear algebra
@@ -61,6 +75,7 @@ with open(modelfile, "w") as file: file.write("""
 	transformed data {
 		int N_halos = 3;
 		row_vector[N_halos] cste_f_dist = [240, 70, 70]; // one large & 2 smaller
+		int grainsize = 1; // grainsize should be estimated automatically
 	}
 
 	parameters { // discrete parameters impossible
@@ -75,24 +90,22 @@ with open(modelfile, "w") as file: file.write("""
 	model {
 		mass_large ~ uniform(40, 180);
 		for (j in 1:N_halos) halo_pos[j] ~ uniform(0, 4200); // use `j` to have same annotation below
-		for (i in 1:N) {
-			row_vector[2] ellpty_mvn_loc = [0, 0];
-			for (j in 1:N_halos)
-				ellpty_mvn_loc += tangential_distance(galaxies[i], halo_pos[j]) * mass_halos[j] / f_dist(galaxies[i], halo_pos[j], cste_f_dist[j]);
-			ellipticity[i] ~ normal(ellpty_mvn_loc, 0.223607);
-		}
+		target += reduce_sum(
+			partial_sum, ellipticity, grainsize, N_halos,
+			galaxies, halo_pos, mass_halos, cste_f_dist
+		);
 	}
 """)
 nchain = 4
+var_name = ["halo_pos"]
 
 sm = CmdStanModel(stan_file = modelfile)
-var_name = ["halo_pos"]
 optim_raw = sm.optimize(data = mdl_data).optimized_params_dict
 optim = {k: optim_raw[k] for k in var_name}
 fit = sm.sample( # very very slow
 	data = mdl_data, show_progress = True, chains = nchain, # adapt_delta = .95,
 	iter_sampling = 50000, iter_warmup = 10000, thin = 5,
-	init = [{"mass_large": 80, "halo_pos": [[1000, 500], [2100, 1500], [3500, 4000]]}] * nchain
+	inits = {"mass_large": 80, "halo_pos": [[1000, 500], [2100, 1500], [3500, 4000]]}
 	# must have init, otherwise failed
 )
 
@@ -104,7 +117,7 @@ posterior = {k: fit.stan_variable(k) for k in var_name}
 
 az_trace = az.from_cmdstanpy(fit)
 az.summary(az_trace).loc[var_name] # pandas DataFrame
-az.plot_trace(az_trace)
+az.plot_trace(az_trace, var_names = var_name)
 
 draw_sky(data_sky, SkyID)
 for i, val in enumerate(["#F15854", "#B276B2", "#FAA43A"]):

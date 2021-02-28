@@ -33,9 +33,9 @@ with open(modelfile, "w") as file: file.write("""
 		hits ~ binomial(at_bats, thetas);
 	}
 """)
+var_name = ["kappa", "phi", "thetas"]
 
 sm = CmdStanModel(stan_file = modelfile)
-var_name = ["kappa", "phi", "thetas"]
 optim_raw = sm.optimize(data = mdl_data).optimized_params_dict
 optim = {k: optim_raw[k] for k in var_name}
 fit = sm.sample(

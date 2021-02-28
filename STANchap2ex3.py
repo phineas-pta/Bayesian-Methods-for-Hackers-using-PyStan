@@ -53,9 +53,9 @@ with open(modelfile, "w") as file: file.write("""
 		occur ~ binomial(N, prob_yes);
 	}
 """)
+var_name = ["prob_cheat"]
 
 sm = CmdStanModel(stan_file = modelfile)
-var_name = ["prob_cheat"]
 optim_raw = sm.optimize(data = mdl_data).optimized_params_dict
 optim = {k: optim_raw[k] for k in var_name}
 fit = sm.sample(
@@ -71,4 +71,4 @@ posterior = {k: fit.stan_variable(k) for k in var_name}
 
 az_trace = az.from_cmdstanpy(fit)
 az.summary(az_trace).loc[var_name] # pandas DataFrame
-az.plot_trace(az_trace)
+az.plot_trace(az_trace, var_names = var_name)

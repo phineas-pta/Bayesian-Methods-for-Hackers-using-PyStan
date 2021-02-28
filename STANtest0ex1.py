@@ -47,21 +47,22 @@ with open(modelfile_ols, "w") as file: file.write(model_data_stan + """
 """)
 
 sm_ols = CmdStanModel(stan_file = modelfile_ols)
-optim_ols = sm_ols.optimize(data = model_data_dict).optimized_params_dict
+optim_raw_ols = sm_ols.optimize(data = model_data_dict).optimized_params_dict
+optim_ols = {k: optim_raw_ols[k] for k in var_name}
 fit_ols = sm_ols.sample(
 	data = model_data_dict, show_progress = True, chains = 4,
 	iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
 
 fit_ols.draws().shape # iterations, chains, parameters
-fit_ols.summary() # pandas DataFrame
+fit_ols.summary().loc[var_name] # pandas DataFrame
 fit_ols.diagnose()
 
-posterior_ols = fit_ols.stan_variables()
+posterior_ols = {k: fit_ols.stan_variable(k) for k in var_name}
 
 az_trace_ols = az.from_cmdstanpy(fit_ols)
-az.summary(az_trace_ols) # pandas DataFrame
-az.plot_trace(az_trace_ols)
+az.summary(az_trace_ols).loc[var_name] # pandas DataFrame
+az.plot_trace(az_trace_ols, var_names = var_name)
 
 gd = sns.jointplot(
 	x = posterior_ols["b0"], y = posterior_ols["b1"],
@@ -84,23 +85,25 @@ with open(modelfile_studentt, "w") as file: file.write(model_data_stan + """
 		Y ~ student_t(df, Yhat, sigmaY);
 	}
 """)
+var_name_studentt = var_name + ["df"]
 
 sm_studentt = CmdStanModel(stan_file = modelfile_studentt)
-optim_studentt = sm_studentt.optimize(data = model_data_dict).optimized_params_dict
+optim_raw_studentt = sm_studentt.optimize(data = model_data_dict).optimized_params_dict
+optim_studentt = {k: optim_raw_studentt[k] for k in var_name_studentt}
 fit_studentt = sm_studentt.sample(
 	data = model_data_dict, show_progress = True, chains = 4,
 	iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
 
 fit_studentt.draws().shape # iterations, chains, parameters
-fit_studentt.summary() # pandas DataFrame
+fit_studentt.summary().loc[var_name_studentt] # pandas DataFrame
 fit_studentt.diagnose()
 
-posterior_studentt = fit_studentt.stan_variables()
+posterior_studentt = {k: fit_studentt.stan_variable(k) for k in var_name_studentt}
 
 az_trace_studentt = az.from_cmdstanpy(fit_studentt)
-az.summary(az_trace_studentt) # pandas DataFrame
-az.plot_trace(az_trace_studentt)
+az.summary(az_trace_studentt).loc[var_name_studentt] # pandas DataFrame
+az.plot_trace(az_trace_studentt, var_names = var_name_studentt)
 
 # Linear Model with Custom Likelihood to Distinguish Outliers: Hogg Method
 # idea: mixture model whereby datapoints can be: normal linear model vs outlier (for convenience also be linear)
@@ -128,27 +131,30 @@ with open(modelfile_hogg, "w") as file: file.write(model_data_stan + """
 		}
 	}
 """)
+var_name_hogg_array = var_name + ["Y_outlier", "sigmaY_outlier", "cluster_prob[1]", "cluster_prob[2]"]
+var_name_hogg_combi = var_name + ["Y_outlier", "sigmaY_outlier", "cluster_prob"]
 
 sm_hogg = CmdStanModel(stan_file = modelfile_hogg)
-optim_hogg = sm_hogg.optimize(data = model_data_dict).optimized_params_dict
+optim_raw_hogg = sm_hogg.optimize(data = model_data_dict).optimized_params_dict
+optim_hogg = {k: optim_raw_hogg[k] for k in var_name_hogg_array}
 fit_hogg = sm_hogg.sample(
 	data = model_data_dict, show_progress = True, chains = 4,
 	iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
 
 fit_hogg.draws().shape # iterations, chains, parameters
-fit_hogg.summary() # pandas DataFrame
+fit_hogg.summary().loc[var_name_hogg_array] # pandas DataFrame
 fit_hogg.diagnose()
 
-posterior_hogg = fit_hogg.stan_variables()
+posterior_hogg = {k: fit_hogg.stan_variable(k) for k in var_name_hogg_combi}
 
 az_trace_hogg = az.from_cmdstanpy(fit_hogg)
 az.summary(az_trace_hogg) # pandas DataFrame
-az.plot_trace(az_trace_hogg)
+az.plot_trace(az_trace_hogg, var_names = var_name_hogg_combi)
 
 #%% some plots
 
-xrange = np.array([X.min() - 1, X.max()])
+Xrange = np.array([X.min() - 1, X.max()])
 dfhogg.plot.scatter(x = "x", y = "y", xerr = "sigma_x", yerr = "sigma_y", c = "b", figsize = (8, 6))
 for x, y, z in zip(
 	[posterior_ols, posterior_studentt, posterior_hogg],
@@ -156,7 +162,7 @@ for x, y, z in zip(
 	["OLS", "Student-T", "Hogg method"]
 ):
 	b0, b1 = x["b0"].mean(), x["b1"].mean()
-	plt.plot(xrange, b0 + b1 * xrange, c = y, label = f"{z}: $ y = {b0:.1f} + {b1:.1f}x $")
+	plt.plot(Xrange, b0 + b1 * Xrange, c = y, label = f"{z}: $ y = {b0:.1f} + {b1:.1f}x $")
 plt.legend(loc = "lower right")
 
 for var in var_name:

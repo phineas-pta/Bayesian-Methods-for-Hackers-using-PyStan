@@ -63,9 +63,9 @@ with open(modelfile, "w") as file: file.write("""
 		observations ~ multi_normal_cholesky(locs, L); // failed to initialize if not use Cholesky
 	}
 """)
+var_name = ["locs", "covs"]
 
 sm = CmdStanModel(stan_file = modelfile)
-var_name = ["locs", "covs"]
 optim_raw = sm.optimize(data = mdl_data).optimized_params_dict
 optim = {k: optim_raw[k] for k in var_name}
 fit = sm.sample(
