@@ -4,6 +4,8 @@ import numpy as np, pandas as pd, seaborn as sns, pandas_datareader.data as web
 from cmdstanpy import CmdStanModel
 from matplotlib import pyplot as plt, ticker as mtick
 
+#%% load data
+
 stock_names = ["GOOG", "AAPL", "AMZN", "TSLA"]
 stock_df = pd.DataFrame()
 for stock in stock_names:
@@ -20,6 +22,8 @@ pd.DataFrame({
 stock_returns.mean()
 stock_returns.cov()
 
+#%% some plot
+
 cum_returns = np.cumprod(1 + stock_returns) - 1
 cum_returns.index = stock_returns.index
 cum_returns.plot()
@@ -32,8 +36,9 @@ sns.displot(meltt, x = 'value', hue = 'column', bins = "sqrt", kde = True)
 g = sns.FacetGrid(meltt, col = 'column', col_wrap = 2)
 g.map(sns.histplot, 'value', bins = "sqrt", kde = True)
 
-mdl_data = {"N": len(stock_returns), "N_stocks": len(stock_names), "observations": stock_returns.values}
+#%% model
 
+mdl_data = {"N": len(stock_returns), "N_stocks": len(stock_names), "observations": stock_returns.values}
 modelfile = "stocks.stan"
 with open(modelfile, "w") as file: file.write("""
 	data { // avoid putting data in matrix except for linear algebra
@@ -63,35 +68,15 @@ with open(modelfile, "w") as file: file.write("""
 		observations ~ multi_normal_cholesky(locs, L); // failed to initialize if not use Cholesky
 	}
 """)
-var_name = ["locs", "covs"]
 
 sm = CmdStanModel(stan_file = modelfile)
-optim_raw = sm.optimize(data = mdl_data).optimized_params_dict
-optim = {k: optim_raw[k] for k in var_name}
 fit = sm.sample(
 	data = mdl_data, show_progress = True, chains = 4,
 	iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
 
-fit.draws().shape # iterations, chains, parameters
-fit.summary().loc[var_name] # pandas DataFrame
-fit.diagnose()
+#%% reparameterization for more efficient computation: Bartlett decomposition
 
-posterior = {k: fit.stan_variable(k) for k in var_name}
-
-colors = ['#5DA5DA', '#F15854', '#B276B2', '#60BD68']
-fig = plt.figure(figsize = (16, 9))
-ax1 = fig.add_subplot(121)
-ax2 = fig.add_subplot(122)
-for i in range(len(stock_names)):
-	sns.kdeplot(posterior["locs"][:,i], color = colors[i], ax = ax1)
-	sns.kdeplot(posterior["covs"][:,i,i], color = colors[i], ax = ax2)
-ax1.legend(labels = stock_names)
-ax1.set_title(r"$ \mu $")
-ax2.legend(labels = stock_names)
-ax2.set_title(r"$ \sigma $")
-
-# reparameterization for more efficient computation: Bartlett decomposition
 modelfile_repar = "stocks_repar.stan"
 with open(modelfile_repar, "w") as file: file.write("""
 	data { // avoid putting data in matrix except for linear algebra
@@ -138,15 +123,37 @@ with open(modelfile_repar, "w") as file: file.write("""
 	}
 """)
 
+Xrange = range(1, 5)
+var_name_repar_array = [f"locs[{i}]" for i in Xrange] + [f"A[{i},{i}]" for i in Xrange]
+var_name_repar_combi = ["locs", "A"]
+
 sm_repar = CmdStanModel(stan_file = modelfile_repar)
-var_name_repar = ["locs", "A"]
 optim_raw_repar = sm_repar.optimize(data = mdl_data).optimized_params_dict
-optim_repar = {k: optim_raw_repar[k] for k in var_name_repar}
+optim_repar = {k: optim_raw_repar[k] for k in var_name_repar_array}
 fit_repar = sm_repar.sample(
 	data = mdl_data, show_progress = True, chains = 4,
 	iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
-posterior = {k: fit.stan_variable(k) for k in var_name}
+
+fit_repar.draws().shape # iterations, chains, parameters
+fit_repar.summary().loc[var_name_repar_array] # pandas DataFrame
+fit_repar.diagnose()
+
+posterior_repar = {k: fit_repar.stan_variable(k) for k in var_name_repar_combi}
+
+# re-compose the covariance matrix
 L_repar = np.linalg.cholesky(np.diag([.04, .03, .02, .01]))
 f = lambda a: L_repar @ a @ a.T @ L_repar.T
-covs = np.array([f(a) for a in posterior_repar["A"]])
+posterior_repar["covs"] = np.array([f(a) for a in posterior_repar["A"]])
+
+colors = ['#5DA5DA', '#F15854', '#B276B2', '#60BD68']
+fig = plt.figure(figsize = (16, 9))
+ax1 = fig.add_subplot(121)
+ax2 = fig.add_subplot(122)
+for i in range(len(stock_names)):
+	sns.kdeplot(posterior_repar["locs"][:,i], color = colors[i], ax = ax1)
+	sns.kdeplot(posterior_repar["covs"][:,i,i], color = colors[i], ax = ax2)
+ax1.legend(labels = stock_names)
+ax1.set_title(r"$ \mu $")
+ax2.legend(labels = stock_names)
+ax2.set_title(r"$ \sigma $")
