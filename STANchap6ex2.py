@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np, pandas as pd, pystan, arviz as az, seaborn as sns, pandas_datareader.data as web
+import numpy as np, pandas as pd, seaborn as sns, pandas_datareader.data as web
+from cmdstanpy import CmdStanModel
 from matplotlib import pyplot as plt, ticker as mtick
 
 stock_names = ["GOOG", "AAPL", "AMZN", "TSLA"]
@@ -32,7 +33,9 @@ g = sns.FacetGrid(meltt, col = 'column', col_wrap = 2)
 g.map(sns.histplot, 'value', bins = "sqrt", kde = True)
 
 mdl_data = {"N": len(stock_returns), "N_stocks": len(stock_names), "observations": stock_returns.values}
-sm = pystan.StanModel(model_name = "simple_mdl", model_code = """
+
+modelfile = "stocks.stan"
+with open(modelfile, "w") as file: file.write("""
 	data { // avoid putting data in matrix except for linear algebra
 		int<lower=0> N;
 		int<lower=0> N_stocks;
@@ -60,13 +63,21 @@ sm = pystan.StanModel(model_name = "simple_mdl", model_code = """
 		observations ~ multi_normal_cholesky(locs, L); // failed to initialize if not use Cholesky
 	}
 """)
-fit = sm.sampling(
-	data = mdl_data, pars = ["locs", "covs"], n_jobs = -1, # parallel
-	iter = 50000, chains = 3, warmup = 10000, thin = 5
+
+sm = CmdStanModel(stan_file = modelfile)
+var_name = ["locs", "covs"]
+optim_raw = sm.optimize(data = mdl_data).optimized_params_dict
+optim = {k: optim_raw[k] for k in var_name}
+fit = sm.sample(
+	data = mdl_data, show_progress = True, chains = 4,
+	iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
-print(fit.stansummary())
-fit.extract(permuted = False).shape # iterations, chains, parameters
-posterior = fit.extract(permuted = True) # all chains are merged and warmup samples are discarded
+
+fit.draws().shape # iterations, chains, parameters
+fit.summary().loc[var_name] # pandas DataFrame
+fit.diagnose()
+
+posterior = {k: fit.stan_variable(k) for k in var_name}
 
 colors = ['#5DA5DA', '#F15854', '#B276B2', '#60BD68']
 fig = plt.figure(figsize = (16, 9))
@@ -81,7 +92,8 @@ ax2.legend(labels = stock_names)
 ax2.set_title(r"$ \sigma $")
 
 # reparameterization for more efficient computation: Bartlett decomposition
-sm_repar = pystan.StanModel(model_name = "repar_mdl", model_code = """
+modelfile_repar = "stocks_repar.stan"
+with open(modelfile, "w") as file: file.write("""
 	data { // avoid putting data in matrix except for linear algebra
 		int<lower=0> N;
 		int<lower=0> N_stocks;
@@ -125,11 +137,16 @@ sm_repar = pystan.StanModel(model_name = "repar_mdl", model_code = """
 		observations ~ multi_normal_cholesky(locs, L*A);
 	}
 """)
-fit_repar = sm_repar.sampling(
-	data = mdl_data, pars = ["locs", "A"], n_jobs = -1, # parallel
-	iter = 50000, chains = 3, warmup = 10000, thin = 5
+
+sm_repar = CmdStanModel(stan_file = modelfile_repar)
+var_name_repar = ["locs", "A"]
+optim_raw_repar = sm_repar.optimize(data = mdl_data).optimized_params_dict
+optim_repar = {k: optim_raw_repar[k] for k in var_name_repar}
+fit_repar = sm_repar.sample(
+	data = mdl_data, show_progress = True, chains = 4,
+	iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
-posterior_repar = fit_repar.extract(permuted = True)
+posterior = {k: fit.stan_variable(k) for k in var_name}
 L_repar = np.linalg.cholesky(np.diag([.04, .03, .02, .01]))
 f = lambda a: L_repar @ a @ a.T @ L_repar.T
 covs = np.array([f(a) for a in posterior_repar["A"]])

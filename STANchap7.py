@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np, pandas as pd, pystan, arviz as az, prince
+import numpy as np, pandas as pd, arviz as az, prince
+from cmdstanpy import CmdStanModel
 
 data = pd.read_csv("data/overfitting.csv", index_col = 'case_id')
 data.columns
@@ -30,7 +31,8 @@ mdl_data = {
 	'new_X': testing_labels.values,
 }
 
-sm = pystan.StanModel(model_name = "Roshan Sharma", model_code = """
+modelfile = "OverfittingRoshanSharma.stan"
+with open(modelfile, "w") as file: file.write("""
 	data {
 		int N; // the number of training observations
 		int N2; // the number of test observations
@@ -59,10 +61,12 @@ sm = pystan.StanModel(model_name = "Roshan Sharma", model_code = """
 		vector[N2] y_pred = alpha + new_X * beta; // the y values predicted by the model
 	}
 """)
+sm = CmdStanModel(stan_file = modelfile)
 
 # DOES NOT WORK
 # need to figure out how to marginalize all discrete params
-pystan.StanModel(model_name = "Tim_Salimans", model_code = """
+modelfile = "OverfittingTimSalimans.stan"
+with open(modelfile, "w") as file: file.write("""
 	data { // avoid putting data in matrix except for linear algebra
 		int<lower=0> N;
 		int<lower=0> N_var;
@@ -86,3 +90,4 @@ pystan.StanModel(model_name = "Tim_Salimans", model_code = """
 		T = Y < mean(Y) ? 1 : 0;
 	}
 """)
+sm = CmdStanModel(stan_file = modelfile)

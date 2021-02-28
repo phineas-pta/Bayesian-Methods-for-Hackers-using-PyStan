@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np, pandas as pd, pystan, arviz as az, matplotlib.pyplot as plt, seaborn as sns
+import numpy as np, pandas as pd, arviz as az, matplotlib.pyplot as plt, seaborn as sns
+from cmdstanpy import CmdStanModel
 
 #%% data
 
@@ -34,7 +35,8 @@ sns.displot(radon + .1, bins = "sqrt", kde = True, log_scale = True)
 #%% models
 
 # pooled model
-sm_pooled = pystan.StanModel(model_name = "pooled_mdl", model_code = """
+modelfile_pooled = "mdl_pooled.stan"
+with open(modelfile_pooled, "w") as file: file.write("""
 	data {
 		int<lower=0> N;
 		vector[N] x;
@@ -54,14 +56,16 @@ sm_pooled = pystan.StanModel(model_name = "pooled_mdl", model_code = """
 		y ~ normal(y_hat, sigma);
 	}
 """)
-fit_pooled = sm_pooled.sampling(
+sm_pooled = CmdStanModel(stan_file = modelfile_pooled)
+fit_pooled = sm_pooled.sample(
 	data = {'N': N, 'x': floor_measure, 'y': log_radon},
-	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1
+	show_progress = True, chains = 4, iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
-print(fit_pooled.stansummary())
+fit_pooled.summary() # pandas DataFrame
 
 # unpooled model
-sm_unpooled = pystan.StanModel(model_name = "unpooled_mdl", model_code = """
+modelfile_unpooled = "mdl_unpooled.stan"
+with open(modelfile_unpooled, "w") as file: file.write("""
 	data {
 		int<lower=0> N;
 		int<lower=0> J;
@@ -86,14 +90,16 @@ sm_unpooled = pystan.StanModel(model_name = "unpooled_mdl", model_code = """
 		y ~ normal(y_hat, sigma);
 	}
 """)
-fit_unpooled = sm_unpooled.sampling(
+sm_unpooled = CmdStanModel(stan_file = modelfile_unpooled)
+fit_unpooled = sm_unpooled.sample(
 	data = {'N': N, 'J': counties, 'county': county, 'x': floor_measure, 'y': log_radon},
-	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1
+	show_progress = True, chains = 4, iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
-print(fit_unpooled.stansummary())
+fit_unpooled.summary() # pandas DataFrame
 
 # partial pooling model
-sm_partial_pooling = pystan.StanModel(model_name = "partial_pooling_mdl", model_code = """
+modelfile_partial_pooling = "mdl_partial_pooling.stan"
+with open(modelfile_partial_pooling, "w") as file: file.write("""
 	data {
 		int<lower=0> N;
 		int<lower=0> J;
@@ -120,14 +126,16 @@ sm_partial_pooling = pystan.StanModel(model_name = "partial_pooling_mdl", model_
 		y ~ normal(y_hat, sigma_y);
 	}
 """)
-fit_partial_pooling = sm_partial_pooling.sampling(
+sm_partial_pooling = CmdStanModel(stan_file = modelfile_partial_pooling)
+fit_partial_pooling = sm_partial_pooling.sample(
 	data = {'N': N, 'J': counties, 'county': county, 'y': log_radon},
-	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1
+	show_progress = True, chains = 4, iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
-print(fit_partial_pooling.stansummary())
+fit_partial_pooling.summary() # pandas DataFrame
 
 # varying intercept model
-sm_varying_intercept = pystan.StanModel(model_name = "varying_intercept_mdl", model_code = """
+modelfile_varying_intercept = "mdl_varying_intercept.stan"
+with open(modelfile_varying_intercept, "w") as file: file.write("""
 	data {
 		int<lower=0> J;
 		int<lower=0> N;
@@ -158,14 +166,16 @@ sm_varying_intercept = pystan.StanModel(model_name = "varying_intercept_mdl", mo
 		y ~ normal(y_hat, sigma_y);
 	}
 """)
-fit_varying_intercept = sm_varying_intercept.sampling(
+sm_varying_intercept = CmdStanModel(stan_file = modelfile_varying_intercept)
+fit_varying_intercept = sm_varying_intercept.sample(
 	data = {'N': N, 'J': counties, 'county': county, 'x': floor_measure, 'y': log_radon},
-	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1
+	show_progress = True, chains = 4, iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
-print(fit_varying_intercept.stansummary())
+fit_varying_intercept.summary() # pandas DataFrame
 
 # varying slope model
-sm_varying_slope = pystan.StanModel(model_name = "varying_slope_mdl", model_code = """
+modelfile_varying_slope = "mdl_varying_slope.stan"
+with open(modelfile_varying_slope, "w") as file: file.write("""
 	data {
 		int<lower=0> J;
 		int<lower=0> N;
@@ -196,14 +206,16 @@ sm_varying_slope = pystan.StanModel(model_name = "varying_slope_mdl", model_code
 		y ~ normal(y_hat, sigma_y);
 	}
 """)
+sm_varying_slope = CmdStanModel(stan_file = modelfile_varying_slope)
 fit_varying_slope = sm_varying_slope.sampling(
 	data = {'N': N, 'J': counties, 'county': county, 'x': floor_measure, 'y': log_radon},
-	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1
+	show_progress = True, chains = 4, iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
-print(fit_varying_slope.stansummary())
+fit_varying_slope.summary() # pandas DataFrame
 
 # varying intercept and slope model
-sm_varying_intercept_slope = pystan.StanModel(model_name = "varying_intercept_slope_mdl", model_code = """
+modelfile_varying_intercept_slope = "mdl_varying_intercept_slope.stan"
+with open(modelfile_varying_intercept_slope, "w") as file: file.write("""
 	data {
 		int<lower=0> N;
 		int<lower=0> J;
@@ -230,14 +242,16 @@ sm_varying_intercept_slope = pystan.StanModel(model_name = "varying_intercept_sl
 		y ~ normal(a[county] + b[county] .* x, sigma);
 	}
 """)
-fit_varying_intercept_slope = sm_varying_intercept_slope.sampling(
+sm_varying_intercept_slope = CmdStanModel(stan_file = modelfile_varying_intercept_slope)
+fit_varying_intercept_slope = sm_varying_intercept_slope.sample(
 	data = {'N': N, 'J': counties, 'county': county, 'x': floor_measure, 'y': log_radon},
-	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1
+	show_progress = True, chains = 4, iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
-print(fit_varying_intercept_slope.stansummary())
+fit_varying_intercept_slope.summary() # pandas DataFrame
 
 # hierarchical intercept model
-sm_hierarchical_intercept = pystan.StanModel(model_name = "hierarchical_intercept_mdl", model_code = """
+modelfile_hierarchical_intercept = "mdl_hierarchical_intercept.stan"
+with open(modelfile_hierarchical_intercept, "w") as file: file.write("""
 	data {
 		int<lower=0> J;
 		int<lower=0> N;
@@ -271,14 +285,16 @@ sm_hierarchical_intercept = pystan.StanModel(model_name = "hierarchical_intercep
 		y ~ normal(y_hat, sigma_y);
 	}
 """)
-fit_hierarchical_intercept = sm_hierarchical_intercept.sampling(
+sm_hierarchical_intercept = CmdStanModel(stan_file = modelfile_hierarchical_intercept)
+fit_hierarchical_intercept = sm_hierarchical_intercept.sample(
 	data = {'N': N, 'J': counties, 'county': county, 'u': u, 'x': floor_measure, 'y': log_radon},
-	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1
+	show_progress = True, chains = 4, iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
-print(fit_hierarchical_intercept.stansummary())
+fit_hierarchical_intercept.summary() # pandas DataFrame
 
 # contextual effect
-sm_contextual_effect = pystan.StanModel(model_name = "contextual_effect_mdl", model_code = """
+modelfile_contextual_effect = "mdl_contextual_effect.stan"
+with open(modelfile_contextual_effect, "w") as file: file.write("""
 	data {
 		int<lower=0> J;
 		int<lower=0> N;
@@ -309,16 +325,18 @@ sm_contextual_effect = pystan.StanModel(model_name = "contextual_effect_mdl", mo
 		y ~ normal(y_hat, sigma_y);
 	}
 """)
-fit_contextual_effect = sm_contextual_effect.sampling(
+sm_contextual_effect = CmdStanModel(stan_file = modelfile_contextual_effect)
+fit_contextual_effect = sm_contextual_effect.sample(
 	data = {'N': N, 'J': counties, 'county': county, 'u': u, 'x_mean': x_mean, 'x': floor_measure, 'y': log_radon},
-	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1
+	show_progress = True, chains = 4, iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
-print(fit_contextual_effect.stansummary())
+fit_contextual_effect.summary() # pandas DataFrame
 
 # prediction
 stl = 'ST LOUIS'
 i_stl = county_lookup[stl]
-sm_contextual_pred = pystan.StanModel(model_name = "contextual_pred_mdl", model_code = """
+modelfile_contextual_pred = "mdl_contextual_pred.stan"
+with open(modelfile_contextual_pred, "w") as file: file.write("""
 	data {
 		int<lower=0> J;
 		int<lower=0> N;
@@ -359,11 +377,12 @@ sm_contextual_pred = pystan.StanModel(model_name = "contextual_pred_mdl", model_
 		real y_stl = normal_rng(stl_mu, sigma_y);
 	}
 """)
-fit_contextual_pred = sm_contextual_pred.sampling(
+sm_contextual_pred = CmdStanModel(stan_file = modelfile_contextual_pred)
+fit_contextual_pred = sm_contextual_pred.sample(
 	data = {
 		'N': N, 'J': counties, 'county': county, 'u': u, 'x_mean': x_mean, 'x': floor_measure, 'y': log_radon,
 		'stl': i_stl, 'u_stl': np.unique(u[srrs_mn.county == stl])[0], 'xbar_stl': xbar[i_stl]
-	}, iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1, pars = ["y_stl"]
+	}, show_progress = True, chains = 4, iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
-sample_contextual_pred = np.exp(fit_contextual_pred.extract(permuted = True)['y_stl'])
+sample_contextual_pred = np.exp(fit_contextual_pred.stan_variable('y_stl'))
 sns.displot(sample_contextual_pred, bins = "sqrt", kde = True)

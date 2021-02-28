@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np, pystan, arviz as az, matplotlib.pyplot as plt
+import numpy as np, arviz as az, matplotlib.pyplot as plt
+from cmdstanpy import CmdStanModel
 rng = np.random.default_rng(seed = 123) # newly introduced type of random generator
 
 N, p, coin = 1000, .1, .5 # 1000 subjects, 100 cheaters, coin flip
@@ -19,7 +20,8 @@ mdl_data = {"N": N, "occur": n_yes}
 #               |                  └ 2nd flip = heads » answer = YES
 #               └ 1st flip = heads                    » answer = YES
 
-sm = pystan.StanModel(model_name = "simple_mdl", model_code = """
+modelfile = "cheating.stan"
+with open(modelfile, "w") as file: file.write("""
 	functions { // No lower-bound or upper-bound constraints are allowed
 		real flip_rng(int N, real prob_coin) { // name must end with `_rng` when use other `_rng`
 			int coin_flip;
@@ -51,15 +53,22 @@ sm = pystan.StanModel(model_name = "simple_mdl", model_code = """
 		occur ~ binomial(N, prob_yes);
 	}
 """)
-optim = sm.optimizing(data = mdl_data)
-fit = sm.sampling(
-	data = mdl_data, pars = ["prob_cheat"], n_jobs = -1, # parallel
-	iter = 50000, chains = 10, warmup = 10000, thin = 5
-)
-print(fit.stansummary())
-fit.extract(permuted = False).shape # iterations, chains, parameters
-posterior = fit.extract(permuted = True) # all chains are merged and warmup samples are discarded
 
-az_trace = az.from_pystan(posterior = fit)
-az.summary(az_trace)
+sm = CmdStanModel(stan_file = modelfile)
+var_name = ["prob_cheat"]
+optim_raw = sm.optimize(data = mdl_data).optimized_params_dict
+optim = {k: optim_raw[k] for k in var_name}
+fit = sm.sample(
+	data = mdl_data, show_progress = True, chains = 4,
+	iter_sampling = 50000, iter_warmup = 10000, thin = 5
+)
+
+fit.draws().shape # iterations, chains, parameters
+fit.summary().loc[var_name] # pandas DataFrame
+fit.diagnose()
+
+posterior = {k: fit.stan_variable(k) for k in var_name}
+
+az_trace = az.from_cmdstanpy(fit)
+az.summary(az_trace).loc[var_name] # pandas DataFrame
 az.plot_trace(az_trace)

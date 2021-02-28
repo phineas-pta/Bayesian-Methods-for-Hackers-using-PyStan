@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np, pandas as pd, pystan, arviz as az, matplotlib.pyplot as plt
+import numpy as np, pandas as pd, arviz as az, matplotlib.pyplot as plt
+from cmdstanpy import CmdStanModel
 from matplotlib.patches import Ellipse
 
 halo_data = pd.read_csv("data/DarkWorlds/Training_halos.csv")
@@ -35,7 +36,9 @@ mdl_data = {
 	"galaxies": data_sky[["x", "y"]].values,
 	"ellipticity": data_sky[["e1", "e2"]].values
 }
-sm = pystan.StanModel(model_name = "Tim_Salimans", model_code = """
+
+modelfile = "DarkWorldsTimSalimans.stan"
+with open(modelfile, "w") as file: file.write("""
 	functions {
 		real f_dist(row_vector glxy_pos, row_vector halo_pos, real cste) {
 			// max of either the Euclidian distance or the constant
@@ -80,18 +83,27 @@ sm = pystan.StanModel(model_name = "Tim_Salimans", model_code = """
 		}
 	}
 """)
-nchain = 3
-fit = sm.sampling( # very very slow
-	data = mdl_data, pars = ["halo_pos"], # control = {"adapt_delta": .95},
-	iter = 50000, chains = nchain, warmup = 10000, thin = 5, n_jobs = -1, # parallel
-	init = [{"mass_large": 80, "halo_pos": [[1000, 500], [2100, 1500], [3500, 4000]]}] * nchain # must have init, otherwise failed
-)
-print(fit.stansummary())
-fit.extract(permuted = False).shape # iterations, chains, parameters
-posterior = fit.extract(permuted = True) # all chains are merged and warmup samples are discarded
+nchain = 4
 
-az_trace = az.from_pystan(posterior = fit)
-az.summary(az_trace)
+sm = CmdStanModel(stan_file = modelfile)
+var_name = ["halo_pos"]
+optim_raw = sm.optimize(data = mdl_data).optimized_params_dict
+optim = {k: optim_raw[k] for k in var_name}
+fit = sm.sample( # very very slow
+	data = mdl_data, show_progress = True, chains = nchain, # adapt_delta = .95,
+	iter_sampling = 50000, iter_warmup = 10000, thin = 5,
+	init = [{"mass_large": 80, "halo_pos": [[1000, 500], [2100, 1500], [3500, 4000]]}] * nchain
+	# must have init, otherwise failed
+)
+
+fit.draws().shape # iterations, chains, parameters
+fit.summary().loc[var_name] # pandas DataFrame
+fit.diagnose()
+
+posterior = {k: fit.stan_variable(k) for k in var_name}
+
+az_trace = az.from_cmdstanpy(fit)
+az.summary(az_trace).loc[var_name] # pandas DataFrame
 az.plot_trace(az_trace)
 
 draw_sky(data_sky, SkyID)

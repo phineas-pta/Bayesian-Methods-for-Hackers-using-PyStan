@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np, pandas as pd, matplotlib.pyplot as plt, seaborn as sns, arviz as az, pystan, scipy
+import numpy as np, pandas as pd, matplotlib.pyplot as plt, seaborn as sns, arviz as az, scipy
+from cmdstanpy import CmdStanModel
 
 #%% data
 
@@ -33,7 +34,8 @@ var_name = ["b0", "b1"]
 #%% models
 
 # Simple Linear Model with no Outlier Correction
-sm_ols = pystan.StanModel(model_name = "mdl_ols", model_code = model_data_stan + """
+modelfile_ols = "mdl_ols.stan"
+with open(modelfile_ols, "w") as file: file.write(model_data_stan + """
 	parameters { // discrete parameters impossible
 		real b0;
 		real b1;
@@ -43,27 +45,34 @@ sm_ols = pystan.StanModel(model_name = "mdl_ols", model_code = model_data_stan +
 		Y ~ normal(Yhat, sigmaY);
 	}
 """)
-optim_ols = sm_ols.optimizing(data = model_data_dict)
-fit_ols = sm_ols.sampling(
-	data = model_data_dict, pars = var_name,
-	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1 # parallel
-)
-print(fit_ols.stansummary())
-sample_ols = fit_ols.extract(permuted = True) # all chains are merged and warmup samples are discarded
 
-az_trace_ols = az.from_pystan(posterior = fit_ols)
-az.summary(az_trace_ols)
+sm_ols = CmdStanModel(stan_file = modelfile_ols)
+optim_ols = sm_ols.optimize(data = model_data_dict).optimized_params_dict
+fit_ols = sm_ols.sample(
+	data = model_data_dict, show_progress = True, chains = 4,
+	iter_sampling = 50000, iter_warmup = 10000, thin = 5
+)
+
+fit_ols.draws().shape # iterations, chains, parameters
+fit_ols.summary() # pandas DataFrame
+fit_ols.diagnose()
+
+posterior_ols = fit_ols.stan_variables()
+
+az_trace_ols = az.from_cmdstanpy(fit_ols)
+az.summary(az_trace_ols) # pandas DataFrame
 az.plot_trace(az_trace_ols)
 
 gd = sns.jointplot(
-	x = sample_ols["b0"], y = sample_ols["b1"],
+	x = posterior_ols["b0"], y = posterior_ols["b1"],
 	marginal_kws={"kde": True, "kde_kws": {"cut": 1}},
 )
 gd.plot_joint(sns.kdeplot, zorder = 2, n_levels = 10, cmap = "gray_r")
 gd.fig.suptitle("Posterior joint distribution (OLS)", y = 1.02)
 
 # Simple Linear Model with Robust Student-T Likelihood: outliers to have a smaller influence in the likelihood estimation
-sm_studentt = pystan.StanModel(model_name = "mdl_studentt", model_code = model_data_stan + """
+modelfile_studentt = "mdl_studentt.stan"
+with open(modelfile_studentt, "w") as file: file.write(model_data_stan + """
 	parameters { // discrete parameters impossible
 		real b0;
 		real b1;
@@ -75,21 +84,28 @@ sm_studentt = pystan.StanModel(model_name = "mdl_studentt", model_code = model_d
 		Y ~ student_t(df, Yhat, sigmaY);
 	}
 """)
-optim_studentt = sm_studentt.optimizing(data = model_data_dict)
-fit_studentt = sm_studentt.sampling(
-	data = model_data_dict, pars = var_name + ["df"],
-	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1 # parallel
-)
-print(fit_studentt.stansummary())
-sample_studentt = fit_studentt.extract(permuted = True) # all chains are merged and warmup samples are discarded
 
-az_trace_studentt = az.from_pystan(posterior = fit_studentt)
-az.summary(az_trace_studentt)
+sm_studentt = CmdStanModel(stan_file = modelfile_studentt)
+optim_studentt = sm_studentt.optimize(data = model_data_dict).optimized_params_dict
+fit_studentt = sm_studentt.sample(
+	data = model_data_dict, show_progress = True, chains = 4,
+	iter_sampling = 50000, iter_warmup = 10000, thin = 5
+)
+
+fit_studentt.draws().shape # iterations, chains, parameters
+fit_studentt.summary() # pandas DataFrame
+fit_studentt.diagnose()
+
+posterior_studentt = fit_studentt.stan_variables()
+
+az_trace_studentt = az.from_cmdstanpy(fit_studentt)
+az.summary(az_trace_studentt) # pandas DataFrame
 az.plot_trace(az_trace_studentt)
 
 # Linear Model with Custom Likelihood to Distinguish Outliers: Hogg Method
 # idea: mixture model whereby datapoints can be: normal linear model vs outlier (for convenience also be linear)
-sm_hogg = pystan.StanModel(model_name = "mdl_hogg", model_code = model_data_stan + """
+modelfile_hogg = "mdl_hogg.stan"
+with open(modelfile_hogg, "w") as file: file.write(model_data_stan + """
 	parameters { // discrete parameters impossible
 		real b0;
 		real b1;
@@ -112,29 +128,39 @@ sm_hogg = pystan.StanModel(model_name = "mdl_hogg", model_code = model_data_stan
 		}
 	}
 """)
-optim_hogg = sm_hogg.optimizing(data = model_data_dict)
-fit_hogg = sm_hogg.sampling(
-	data = model_data_dict, pars = var_name + ["Y_outlier", "sigmaY_outlier", "cluster_prob"],
-	iter = 50000, chains = 3, warmup = 10000, thin = 5, n_jobs = -1 # parallel
-)
-print(fit_hogg.stansummary())
-sample_hogg = fit_hogg.extract(permuted = True) # all chains are merged and warmup samples are discarded
 
-az_trace_hogg = az.from_pystan(posterior = fit_hogg)
-az.summary(az_trace_hogg)
+sm_hogg = CmdStanModel(stan_file = modelfile_hogg)
+optim_hogg = sm_hogg.optimize(data = model_data_dict).optimized_params_dict
+fit_hogg = sm_hogg.sample(
+	data = model_data_dict, show_progress = True, chains = 4,
+	iter_sampling = 50000, iter_warmup = 10000, thin = 5
+)
+
+fit_hogg.draws().shape # iterations, chains, parameters
+fit_hogg.summary() # pandas DataFrame
+fit_hogg.diagnose()
+
+posterior_hogg = fit_hogg.stan_variables()
+
+az_trace_hogg = az.from_cmdstanpy(fit_hogg)
+az.summary(az_trace_hogg) # pandas DataFrame
 az.plot_trace(az_trace_hogg)
 
 #%% some plots
 
 xrange = np.array([X.min() - 1, X.max()])
 dfhogg.plot.scatter(x = "x", y = "y", xerr = "sigma_x", yerr = "sigma_y", c = "b", figsize = (8, 6))
-for x, y, z in zip([sample_ols, sample_studentt, sample_hogg], ["r", "g", "m"], ["OLS", "Student-T", "Hogg method"]):
+for x, y, z in zip(
+	[posterior_ols, posterior_studentt, posterior_hogg],
+	["r", "g", "m"],
+	["OLS", "Student-T", "Hogg method"]
+):
 	b0, b1 = x["b0"].mean(), x["b1"].mean()
 	plt.plot(xrange, b0 + b1 * xrange, c = y, label = f"{z}: $ y = {b0:.1f} + {b1:.1f}x $")
 plt.legend(loc = "lower right")
 
 for var in var_name:
-	a, b, c = sample_ols[var], sample_studentt[var], sample_hogg[var]
+	a, b, c = posterior_ols[var], posterior_studentt[var], posterior_hogg[var]
 	data = pd.DataFrame(data = {
 		"y": np.concatenate((a, b, c)),
 		"model": np.repeat([
@@ -151,14 +177,14 @@ for var in var_name:
 # Compute the un-normalized log probabilities for each cluster
 cluster_0_log_prob = scipy.stats.norm.logpdf(
 	np.expand_dims(Y, axis = 1),
-	loc = sample_hogg["b0"] + sample_hogg["b1"] * np.expand_dims(X, axis = 1),
+	loc = posterior_hogg["b0"] + posterior_hogg["b1"] * np.expand_dims(X, axis = 1),
 	scale = np.expand_dims(sigmaY, axis = 1)
-) + np.log(sample_hogg["cluster_prob"][:, 0])
+) + np.log(posterior_hogg["cluster_prob"][:, 0])
 cluster_1_log_prob = scipy.stats.norm.logpdf(
 	np.expand_dims(Y, axis = 1),
-	loc = sample_hogg["Y_outlier"],
-	scale = np.expand_dims(sigmaY, axis = 1) + sample_hogg["sigmaY_outlier"]
-) + np.log(sample_hogg["cluster_prob"][:, 1])
+	loc = posterior_hogg["Y_outlier"],
+	scale = np.expand_dims(sigmaY, axis = 1) + posterior_hogg["sigmaY_outlier"]
+) + np.log(posterior_hogg["cluster_prob"][:, 1])
 
 # Bayes rule to compute the assignment probability: P(cluster = 1 | data) ∝ P(data | cluster = 1) P(cluster = 1)
 log_p_assign_1 = cluster_1_log_prob - np.logaddexp(cluster_0_log_prob, cluster_1_log_prob)

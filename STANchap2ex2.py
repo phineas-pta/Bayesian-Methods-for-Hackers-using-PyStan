@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np, pandas as pd, pystan, arviz as az, matplotlib.pyplot as plt
+import numpy as np, arviz as az, matplotlib.pyplot as plt
+from cmdstanpy import CmdStanModel
 rng = np.random.default_rng(seed = 123) # newly introduced type of random generator
 
 pA, N = .05, 1500
 occurrences = rng.binomial(N, pA)
 mdl_data = {"N": N, "occur": occurrences}
 
-sm = pystan.StanModel(model_name = "simple_mdl", model_code = """
+modelfile = "ABtesting.stan"
+with open(modelfile, "w") as file: file.write("""
 	data {
 		int<lower=0> N;
 		int<lower=0, upper=N> occur;
@@ -21,15 +23,20 @@ sm = pystan.StanModel(model_name = "simple_mdl", model_code = """
 		occur ~ binomial(N, probA);
 	}
 """)
-optim = sm.optimizing(data = mdl_data)
-fit = sm.sampling(
-	data = mdl_data, n_jobs = -1, # parallel
-	iter = 50000, chains = 10, warmup = 10000, thin = 5
-)
-print(fit.stansummary())
-fit.extract(permuted = False).shape # iterations, chains, parameters
-posterior = fit.extract(permuted = True) # all chains are merged and warmup samples are discarded
 
-az_trace = az.from_pystan(posterior = fit)
-az.summary(az_trace)
+sm = CmdStanModel(stan_file = modelfile)
+optim = sm.optimize(data = mdl_data).optimized_params_dict
+fit = sm.sample(
+	data = mdl_data, show_progress = True, chains = 4,
+	iter_sampling = 50000, iter_warmup = 10000, thin = 5
+)
+
+fit.draws().shape # iterations, chains, parameters
+fit.summary() # pandas DataFrame
+fit.diagnose()
+
+posterior = fit.stan_variables()
+
+az_trace = az.from_cmdstanpy(fit)
+az.summary(az_trace) # pandas DataFrame
 az.plot_trace(az_trace)

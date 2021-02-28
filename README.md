@@ -1,4 +1,5 @@
-re-write of HMC code in the book *Probabilistic Programming & Bayesian Methods for Hackers* to PyStan2
+re-write of HMC code in the book *Probabilistic Programming & Bayesian Methods for Hackers* to ~~PyStan2~~ CmdStanPy
+(due to multiple feature changes in PyStan3, I decided to make it to CmdStanPy)
 
 original book: https://github.com/CamDavidsonPilon/Probabilistic-Programming-and-Bayesian-Methods-for-Hackers
 

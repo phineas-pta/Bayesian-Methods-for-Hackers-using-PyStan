@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np, pandas as pd, pystan, arviz as az, matplotlib.pyplot as plt
+import numpy as np, arviz as az, matplotlib.pyplot as plt
+from cmdstanpy import CmdStanModel
 
 count_data = np.array([
     13, 24,  8, 24,  7, 35, 14, 11, 15, 11, 22, 22, 11, 57, 11, 19, 29,  6, 19, 12, 22, 12, 18, 72, 32,  9,  7, 13,
@@ -10,7 +11,8 @@ count_data = np.array([
 mdl_data = {"N": len(count_data), "obs": count_data}
 
 # original model: slower
-sm = pystan.StanModel(model_name = "std_mdl", model_code = """
+modelfile = "count.stan"
+with open(modelfile, "w") as file: file.write("""
 	data {
 		int<lower=0> N;
 		int<lower=0> obs[N];
@@ -41,21 +43,17 @@ sm = pystan.StanModel(model_name = "std_mdl", model_code = """
 		}
 	}
 """)
-optim = sm.optimizing(data = mdl_data)
-fit = sm.sampling(
-	data = mdl_data, n_jobs = -1, # parallel
-	iter = 50000, chains = 3, warmup = 10000, thin = 5
+
+sm = CmdStanModel(stan_file = modelfile)
+optim = sm.optimize(data = mdl_data).optimized_params_dict
+fit = sm.sample(
+	data = mdl_data, show_progress = True, chains = 4,
+	iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
-print(fit.stansummary())
-fit.extract(permuted = False).shape # iterations, chains, parameters
-posterior = fit.extract(permuted = True) # all chains are merged and warmup samples are discarded
 
-az_trace = az.from_pystan(posterior = fit)
-az.summary(az_trace)
-az.plot_trace(az_trace)
-
-# model copied from stan docs: faster a lot
-sm_modif = pystan.StanModel(model_name = "modif_mdl", model_code = """
+# model copied from stan docs: a lot faster
+modelfile_modif = "count_modif.stan"
+with open(modelfile_modif, "w") as file: file.write("""
 	data {
 		int<lower=0> N;
 		int<lower=0> obs[N];
@@ -96,8 +94,21 @@ sm_modif = pystan.StanModel(model_name = "modif_mdl", model_code = """
 	}
 """)
 
-fit_modif = sm_modif.sampling(
-	data = mdl_data, n_jobs = -1, pars = ["lambda1", "lambda2", "tau"],
-	iter = 50000, chains = 3, warmup = 10000, thin = 5
+sm_modif = CmdStanModel(stan_file = modelfile_modif)
+var_name = ["lambda1", "lambda2", "tau"]
+optim_raw_modif = sm_modif.optimize(data = mdl_data).optimized_params_dict
+optim_modif = {k: optim_raw_modif[k] for k in var_name}
+fit_modif = sm_modif.sample(
+	data = mdl_data, show_progress = True, chains = 4,
+	iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
-print(fit_modif.stansummary())
+
+fit_modif.draws().shape # iterations, chains, parameters
+fit_modif.summary().loc[var_name] # pandas DataFrame
+fit_modif.diagnose()
+
+posterior = {k: fit_modif.stan_variable(k) for k in var_name}
+
+az_trace = az.from_cmdstanpy(fit_modif)
+az.summary(az_trace).loc[var_name] # pandas DataFrame
+az.plot_trace(az_trace, var_names = var_name)

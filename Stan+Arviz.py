@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np, pandas as pd, pystan, arviz as az, matplotlib.pyplot as plt
+import numpy as np, arviz as az, matplotlib.pyplot as plt
+from cmdstanpy import CmdStanModel
 
 # data for model fitting
 N = 5
@@ -15,7 +16,8 @@ candidate_devs_time = np.array([3.6, 5.1])
 candidate_devs = np.array(["Francis", "Gerard"])
 
 # prior distrib
-sm_prior = pystan.StanModel(model_code = """
+modelfile_prior = "prior.stan"
+with open(modelfile_prior, "w") as file: file.write("""
 	data {
 		int<lower=0> N;
 		real time_since_joined[N];
@@ -51,13 +53,16 @@ sm_prior = pystan.StanModel(model_code = """
 		}
 	}
 """)
-prior = sm_prior.sampling(
-	data={"N": N, "time_since_joined": time_since_joined},
-	iter=150, chains=1, algorithm='Fixed_param', warmup=0
+
+sm_prior = CmdStanModel(stan_file = modelfile_prior)
+prior = sm_prior.sample(
+	data = {"N": N, "time_since_joined": time_since_joined},
+	iter_sampling = 150, chains = 1, iter_warmup = 0, fixed_param = True
 )
 
 # posterior distrib
-sm = pystan.StanModel(model_code="""
+modelfile_posterior = "posterior.stan"
+with open(modelfile_posterior, "w") as file: file.write("""
 	data {
 		int<lower=0> N;
 		vector<lower=0>[N] time_since_joined;
@@ -121,15 +126,17 @@ sm = pystan.StanModel(model_code="""
 		}
 	}
 """)
-posterior = sm.sampling(data={
+
+sm_posterior = CmdStanModel(stan_file = modelfile_posterior)
+posterior = sm_posterior.sample(data={
 	"N": N, "time_since_joined": time_since_joined,
 	"slack_comments": slack_comments, "github_commits": github_commits,
 	"N_pred" : N_pred, "time_since_joined_pred" : candidate_devs_time
-}, iter=200, chains=4)
+}, iter_sampling = 200, chains = 4)
 
 # save to arviz
 var_name = ["slack_comments","github_commits"]
-idata_stan = az.from_pystan(
+idata_stan = az.from_cmdstanpy(
 	posterior=posterior, prior=prior,
 	posterior_predictive=[i + "_hat" for i in var_name],
 	prior_predictive=[i + "_hat" for i in var_name],
