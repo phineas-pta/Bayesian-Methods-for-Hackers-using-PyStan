@@ -99,12 +99,12 @@ with open(modelfile, "w") as file: file.write("""
 nchain = 4
 var_name = ["halo_pos"]
 
-sm = CmdStanModel(stan_file = modelfile)
+sm = CmdStanModel(stan_file = modelfile, cpp_options = {"STAN_THREADS": True}) # parallelization
 optim_raw = sm.optimize(data = mdl_data).optimized_params_dict
 optim = {k: optim_raw[k] for k in var_name}
 fit = sm.sample( # very very slow
 	data = mdl_data, show_progress = True, chains = nchain, # adapt_delta = .95,
-	iter_sampling = 50000, iter_warmup = 10000, thin = 5,
+	iter_sampling = 50000, iter_warmup = 10000, thin = 5, threads_per_chain = 2, # parallelization
 	inits = {"mass_large": 80, "halo_pos": [[1000, 500], [2100, 1500], [3500, 4000]]}
 	# must have init, otherwise failed
 )
