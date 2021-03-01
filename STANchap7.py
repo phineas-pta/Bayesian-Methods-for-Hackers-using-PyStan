@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np, pandas as pd, arviz as az, prince
+import numpy as np, pandas as pd, arviz as az, prince, matplotlib.pyplot as plt, seaborn as sns
 from cmdstanpy import CmdStanModel
+
+#%% load data
 
 data = pd.read_csv("data/overfitting.csv", index_col = 'case_id')
 data.columns
-predictors = data[data.columns[data.columns.str.startswith("var_")]]
+data.info()
+
+feature_names = data.columns.str.startswith("var_")
+predictors = data[data.columns[feature_names]]
 labels = data["Target_Practice"]
 
 ix_training = data.train == 1
@@ -16,19 +21,21 @@ ix_testing = data.train == 0
 testing_data = predictors[ix_testing]
 testing_labels = labels[ix_testing]
 
-sns.histplot(training_data.values.flatten(), bins = "sqrt", kde = True)
+sns.displot(training_data.values.flatten(), bins = "sqrt", kde = True)
 
 pca = prince.PCA(n_components = 2, as_array = False).fit(training_data)
 pca.plot_row_coordinates(training_data, color_labels = training_labels)
 pca.column_correlations(training_data).plot.scatter(x = 0, y = 1) # weird column name
 
-mdl_data = {
-	'N': len(ix_training),
-	'N2': len(ix_testing),
-	'K': len(data.columns.str.startswith("var_")),
-	'y': training_labels.values,
-	'X': training_data.values,
-	'new_X': testing_labels.values,
+#%% Roshan Sharma model
+
+mdl_data = { # problem with JSON dump => cast to python native type
+	'N': ix_training.sum().tolist(),
+	'N2': ix_testing.sum().tolist(),
+	'K': feature_names.sum().tolist(),
+	'y': training_labels.values.tolist(),
+	'X': training_data.values.tolist(),
+	'new_X': testing_data.values.tolist(),
 }
 
 modelfile = "OverfittingRoshanSharma.stan"
@@ -42,9 +49,9 @@ with open(modelfile, "w") as file: file.write("""
 		matrix[N2,K] new_X; // the matrix for the predicted values
 	}
 
-	parameters {
+	parameters { // regression parameters
 		real alpha;
-		vector[K] beta; // the regression parameters
+		vector[K] beta;
 	}
 
 	transformed parameters {
@@ -57,37 +64,37 @@ with open(modelfile, "w") as file: file.write("""
 		y ~ bernoulli_logit(linpred);
 	}
 
-	generated quantities {
-		vector[N2] y_pred = alpha + new_X * beta; // the y values predicted by the model
+	generated quantities { // y values predicted by the model
+		vector[N2] y_pred = alpha + new_X * beta;
 	}
 """)
-sm = CmdStanModel(stan_file = modelfile)
+var_name_array = ["alpha"] + [f"beta[{i+1}]" for i in range(mdl_data["K"])]
+var_name_combi = ["alpha", "beta"]
 
-# DOES NOT WORK
+sm = CmdStanModel(stan_file = modelfile)
+optim_raw = sm.optimize(data = mdl_data).optimized_params_dict
+optim = {k: optim_raw[k] for k in var_name_array}
+
+listBetas = np.array([optim_raw[f"beta[{i+1}]"] for i in range(mdl_data["K"])])
+plt.bar(range(1, mdl_data["K"]+1), height = np.abs(listBetas), log = True)
+
+fit = sm.sample(
+	data = mdl_data, show_progress = True, chains = 4,
+	iter_sampling = 50000, iter_warmup = 10000, thin = 5
+)
+
+fit.draws().shape # iterations, chains, parameters
+fit.summary().loc[var_name_array] # pandas DataFrame
+fit.diagnose()
+
+posterior = {k: fit_modif.stan_variable(k) for k in var_name_combi}
+
+az_trace = az.from_cmdstanpy(fit)
+az.summary(az_trace).loc[var_name] # pandas DataFrame
+az.plot_trace(az_trace, var_names = ["alpha"])
+az.plot_forest(az_trace, var_names = ["beta"])
+
+sample_pred = fit.stan_variable('y_pred')
+
+# Tim Salimans model: DOES NOT WORK yet
 # need to figure out how to marginalize all discrete params
-modelfile = "OverfittingTimSalimans.stan"
-with open(modelfile, "w") as file: file.write("""
-	data { // avoid putting data in matrix except for linear algebra
-		int<lower=0> N;
-		int<lower=0> N_var;
-		row_vector<lower=0, upper=1>[N] T;
-		row_vector<lower=0, upper=1>[N_var] obs[N];
-	}
-
-	parameters { // discrete parameters impossible
-		vector<lower=0, upper=1>[N_var] includes;
-	}
-
-	transformed parameters {
-		real n_incl = sum(includes);
-		row_vector<lower=0, upper=1>[N_var] coef;
-		row_vector<lower=0>[N_var] Y[N] = coef * obs * includes;
-	}
-
-	model {
-		includes ~ bernoulli(.5);
-		coef ~ uniform(0, 1);
-		T = Y < mean(Y) ? 1 : 0;
-	}
-""")
-sm = CmdStanModel(stan_file = modelfile)
