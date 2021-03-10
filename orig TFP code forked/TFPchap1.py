@@ -7,7 +7,7 @@ from tensorflow_probability import distributions as tfd, bijectors as tfb, mcmc
 ###############################################################################
 # coin flipping
 
-rv_coin_flip_prior = tfd.Bernoulli(probs = 0.5, dtype = tf.int32)
+rv_coin_flip_prior = tfd.Bernoulli(probs = 0.5, dtype = "int32")
 num_trials = tf.constant([0, 1, 2, 3, 4, 5, 8, 15, 50, 500, 1000, 2000])
 
 # prepend a 0 onto tally of heads and tails, for zeroth flip
@@ -21,8 +21,8 @@ coin_flip_data = tf.pad(
 cumulative_headcounts = tf.gather(params = tf.cumsum(coin_flip_data), indices = num_trials)
 
 rv_observed_heads = tfd.Beta(
-	concentration1 = tf.cast(1 + cumulative_headcounts, dtype = tf.float32),
-	concentration0 = tf.cast(1 + num_trials - cumulative_headcounts, dtype = tf.float32)
+	concentration1 = tf.cast(1 + cumulative_headcounts, dtype = "float32"),
+	concentration0 = tf.cast(1 + num_trials - cumulative_headcounts, dtype = "float32")
 )
 
 probs_of_heads = tf.linspace(start = 0., stop = 1., num = 100, name = "linspace")
@@ -56,9 +56,9 @@ count_data = tf.constant([
     13, 24,  8, 24,  7, 35, 14, 11, 15, 11, 22, 22, 11, 57, 11, 19, 29,  6, 19, 12, 22, 12, 18, 72, 32,  9,  7, 13,
     19, 23, 27, 20,  6, 17, 13, 10, 14,  6, 16, 15,  7,  2, 15, 15, 19, 70, 49,  7, 53, 22, 21, 31, 19, 11, 18, 20,
     12, 35, 17, 23, 17,  4,  2, 31, 30, 13, 27,  0, 39, 37,  5, 14, 13, 22,
-], dtype = tf.float32)
+], dtype = "float32")
 n_count_data = tf.shape(count_data)
-days = tf.range(n_count_data[0], dtype = tf.int32)
+days = tf.range(n_count_data[0], dtype = "int32")
 
 # Visualizing the Results
 plt.figure(figsize = (12.5, 4))

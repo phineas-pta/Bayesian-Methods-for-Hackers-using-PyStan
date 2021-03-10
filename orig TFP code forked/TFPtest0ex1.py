@@ -5,7 +5,6 @@ import numpy as np, tensorflow as tf, pandas as pd,\
        arviz as az, tensorflow_probability as tfp
 tfd, tfb = tfp.distributions, tfp.bijectors
 tf.config.optimizer.set_jit(True)
-mpl.rc("figure", **{"figsize": (8, 6), "autolayout": True})
 
 #%% data
 dfhogg = pd.DataFrame(dict(
@@ -61,7 +60,7 @@ def model():
 	b0 = yield tfd.Normal(loc = 0., scale = 1., name = "b0")
 	b1 = yield tfd.Normal(loc = 0., scale = 1., name = "b1")
 	yhat = b0 + b1*X_np
-	likelihood = yield tfd.Normal(loc = yhat, scale = sigma_y_np, name = "yhat")
+	yield tfd.Normal(loc = yhat, scale = sigma_y_np, name = "yhat")
 
 model.sample()
 
@@ -91,8 +90,8 @@ def trace_fn(current_state, kernel_results):
 @tf.function(autograph = False, experimental_compile = True) # speed up a lot the McMC sampling
 def run_mcmc( # pass numeric arguments as Tensors whenever possible
 	init_state, unconstraining_bijectors,
-	num_steps = tf.constant(50000), burnin = tf.constant(10000),
-	num_leapfrog_steps = tf.constant(3), step_size = tf.constant(.5)
+	num_steps = 50000, burnin = 10000,
+	num_leapfrog_steps = 3, step_size = .5
 ):
 	kernel0 = tfp.mcmc.NoUTurnSampler(
 		target_log_prob_fn = lambda *args: model.log_prob(yhat=Y_np, *args),
@@ -104,12 +103,11 @@ def run_mcmc( # pass numeric arguments as Tensors whenever possible
 	)
 	kernel2 = tfp.mcmc.DualAveragingStepSizeAdaptation( # pkr = previous kernel results
 		inner_kernel = kernel1,
-		num_adaptation_steps = tf.cast(tf.constant(0.8)*tf.cast(burnin, dtype= tf.float32), dtype = tf.int32),
+		num_adaptation_steps = int(0.8*burnin),
 		step_size_setter_fn = lambda pkr, new_step_size: pkr._replace(inner_results = pkr.inner_results._replace(step_size=new_step_size)),
 		step_size_getter_fn = lambda pkr: pkr.inner_results.step_size,
 		log_accept_prob_getter_fn = lambda pkr: pkr.inner_results.log_accept_ratio
 	)
-	# tf.get_logger().setLevel("ERROR") # multiple chains
 	return tfp.mcmc.sample_chain( # ATTENTION: 2 values to unpack
 		num_results = num_steps,
 		num_burnin_steps = burnin,
@@ -118,7 +116,7 @@ def run_mcmc( # pass numeric arguments as Tensors whenever possible
 		trace_fn = trace_fn
 	)
 
-nchain = 5
+nchain = 4
 init_state = [model.sample(nchain)._asdict()[_] for _ in var_name]
 unconstraining_bijectors = [tfb.Identity()]*len(var_name) # map contrained parameters to real (2 params)
 samples, sampler_stat = run_mcmc(init_state, unconstraining_bijectors)
@@ -127,12 +125,10 @@ samples, sampler_stat = run_mcmc(init_state, unconstraining_bijectors)
 sample_stats_name = ['log_likelihood', 'tree_size', 'diverging', 'energy', 'mean_tree_accept']
 
 sample_stats = {k: v.numpy().T for k, v in zip(sample_stats_name, sampler_stat)}
-# sample_stats['tree_size'] = np.diff(sample_stats['tree_size'], axis=1) # multilple chains
-posterior = {k: v.numpy() for k, v in zip(var_name, samples)}
-# posterior = {k:np.swapaxes(v.numpy(), 1, 0) for k, v in zip(var_name, samples)} # multilple chains
+posterior = {k: np.swapaxes(v.numpy(), 1, 0) for k, v in zip(var_name, samples)}
 az_trace = az.from_dict(posterior=posterior, sample_stats=sample_stats)
 
-sns.displot(posterior["b0"], bins = 100, kde = True)
+sns.displot(tf.reshape(posterior["b0"],[-1]).numpy(), bins = "sqrt", kde = True)
 tf.reduce_mean(posterior["b0"])
 
 az.summary(az_trace)

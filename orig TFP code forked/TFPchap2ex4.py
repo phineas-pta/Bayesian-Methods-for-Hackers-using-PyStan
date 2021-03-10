@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np, tensorflow as tf, pandas as pd, seaborn as sns, tensorflow_probability as tfp
+import numpy as np, tensorflow as tf, pandas as pd, arviz as az, seaborn as sns, tensorflow_probability as tfp
 from matplotlib import pyplot as plt, dates as mdates
 tfd, tfb = tfp.distributions, tfp.bijectors
 tf.config.optimizer.set_jit(True)
@@ -17,8 +17,8 @@ plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
 plt.gca().xaxis.set_major_locator(mdates.YearLocator())
 plt.gcf().autofmt_xdate()
 
-dam = tf.cast(challenger["Damage Incident"], tf.float32)
-temp = tf.cast(challenger["Temperature"], tf.float32)
+dam = tf.cast(challenger["Damage Incident"], "float32")
+temp = tf.cast(challenger["Temperature"], "float32")
 var_name = ["alpha", "beta"]
 
 @tfd.JointDistributionCoroutineAutoBatched
@@ -36,8 +36,8 @@ def trace_fn(current_state, kernel_results):
 @tf.function(autograph = False, experimental_compile = True) # speed up a lot the McMC sampling
 def run_mcmc( # pass numeric arguments as Tensors whenever possible
 	init_state, unconstraining_bijectors,
-	num_steps = tf.constant(50000), burnin = tf.constant(10000),
-	num_leapfrog_steps = tf.constant(3), step_size = tf.constant(.5)
+	num_steps = 50000, burnin = 10000,
+	num_leapfrog_steps = 3, step_size = .5
 ):
 	kernel0 = tfp.mcmc.NoUTurnSampler(
 		target_log_prob_fn = lambda *args: mdl_batch.log_prob(damage=dam, *args),
@@ -49,7 +49,7 @@ def run_mcmc( # pass numeric arguments as Tensors whenever possible
 	)
 	kernel2 = tfp.mcmc.DualAveragingStepSizeAdaptation( # pkr = previous kernel results
 		inner_kernel = kernel1,
-		num_adaptation_steps = tf.cast(tf.constant(0.8)*tf.cast(burnin, dtype= tf.float32), dtype = tf.int32),
+		num_adaptation_steps = int(0.8*burnin),
 		step_size_setter_fn = lambda pkr, new_step_size: pkr._replace(inner_results = pkr.inner_results._replace(step_size=new_step_size)),
 		step_size_getter_fn = lambda pkr: pkr.inner_results.step_size,
 		log_accept_prob_getter_fn = lambda pkr: pkr.inner_results.log_accept_ratio
@@ -69,3 +69,13 @@ init_state = [mdl_batch.sample(nchain)._asdict()[_] for _ in var_name]
 # α ≈ 100×ß, so apply bijector to 100× the unconstrained α to get back to the original problem space
 unconstraining_bijectors = [tfb.Scale(100.), tfb.Identity()]
 samples, sampler_stat = run_mcmc(init_state, unconstraining_bijectors)
+
+#%% using the pymc3 naming convention, with log_likelihood instead of lp so that ArviZ can compute loo and waic
+sample_stats_name = ['log_likelihood', 'tree_size', 'diverging', 'energy', 'mean_tree_accept']
+
+sample_stats = {k: v.numpy().T for k, v in zip(sample_stats_name, sampler_stat)}
+posterior = {k: np.swapaxes(v.numpy(), 1, 0) for k, v in zip(var_name, samples)}
+az_trace = az.from_dict(posterior=posterior, sample_stats=sample_stats)
+
+az.summary(az_trace)
+az.plot_trace(az_trace)
