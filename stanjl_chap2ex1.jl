@@ -1,3 +1,4 @@
+using StatsPlots, ArviZ
 using Stan.StanSample: SampleModel, Sample, stan_sample, read_summary, read_samples
 using Stan.StanDiagnose: DiagnoseModel, stan_diagnose, read_diagnose
 using Stan.StanOptimize: OptimizeModel, stan_optimize, read_optimize
@@ -79,6 +80,14 @@ optim, cnames = read_optimize(sm["optimize"]);
 diags = read_diagnose(sm["diagnose"]);
 vi_samples, vi_names = read_variational(sm["variational"]);
 
+idata = from_namedtuple(samples);
+summarystats(idata)
+plot_trace(idata, var_names = var_name)
+
 optim_data = Dict(i => optim[i] for i ∈ var_name);
 vi_data = Dict(i => dropdims(vi_samples[:,findall(x -> x == i, vi_names),:], dims=2) for i ∈ var_name);
-samples_data = Dict(i => reshape(getfield(samples, Symbol(i)), :, 4) for i ∈ var_name);
+samples_data = Dict(i => reshape(samples[Symbol(i)], :, 4) for i ∈ var_name);
+
+for i ∈ var_name
+	density(samples_data[i]) |> display
+end
