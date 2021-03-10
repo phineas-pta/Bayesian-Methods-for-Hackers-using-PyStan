@@ -25,8 +25,7 @@ with open(modelfile, "w") as file: file.write("""
 	}
 
 	transformed parameters {
-		vector[N] prob;
-		prob = 1 ./ (1 + exp(beta * temp + alpha)); // element-wise
+		vector[N] prob = 1 ./ (1 + exp(beta * temp + alpha)); // element-wise
 	}
 
 	model {
@@ -38,19 +37,30 @@ with open(modelfile, "w") as file: file.write("""
 var_name = ["alpha", "beta"]
 
 sm = CmdStanModel(stan_file = modelfile)
-optim_raw = sm.optimize(data = mdl_data).optimized_params_dict
-optim = {k: optim_raw[k] for k in var_name}
+
+# maximum likelihood estimation
+optim = sm.optimize(data = mdl_data).optimized_params_pd
+optim[optim.columns[~optim.columns.str.startswith("lp")]]
+
+# variational inference
+vb = sm.variational(data = mdl_data)
+vb.variational_sample.columns = vb.variational_params_dict.keys()
+vb_name = vb.variational_params_pd.columns[~vb.variational_params_pd.columns.str.startswith(("lp", "log_"))]
+vb.variational_params_pd[vb_name]
+vb.variational_sample[vb_name]
+
+# Markov chain Monte Carlo
 fit = sm.sample(
 	data = mdl_data, show_progress = True, chains = 4,
 	iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
 
 fit.draws().shape # iterations, chains, parameters
-fit.summary().loc[var_name] # pandas DataFrame
-fit.diagnose()
+fit.summary().loc[vb_name] # pandas DataFrame
+print(fit.diagnose())
 
 posterior = {k: fit.stan_variable(k) for k in var_name}
 
 az_trace = az.from_cmdstanpy(fit)
-az.summary(az_trace).loc[var_name] # pandas DataFrame
+az.summary(az_trace).loc[vb_name] # pandas DataFrame
 az.plot_trace(az_trace, var_names = var_name)

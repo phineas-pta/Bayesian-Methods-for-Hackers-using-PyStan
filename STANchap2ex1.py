@@ -96,19 +96,30 @@ with open(modelfile_modif, "w") as file: file.write("""
 
 sm_modif = CmdStanModel(stan_file = modelfile_modif)
 var_name = ["lambda1", "lambda2", "tau"]
-optim_raw_modif = sm_modif.optimize(data = mdl_data).optimized_params_dict
-optim_modif = {k: optim_raw_modif[k] for k in var_name}
+
+# maximum likelihood estimation
+optim_modif = sm_modif.optimize(data = mdl_data).optimized_params_pd
+optim_modif[optim_modif.columns[~optim_modif.columns.str.startswith("lp")]]
+
+# variational inference
+vb_modif = sm_modif.variational(data = mdl_data)
+vb_modif.variational_sample.columns = vb_modif.variational_params_dict.keys()
+vb_name = vb_modif.variational_params_pd.columns[~vb_modif.variational_params_pd.columns.str.startswith(("lp", "log_"))]
+vb_modif.variational_params_pd[vb_name]
+vb_modif.variational_sample[vb_name]
+
+# Markov chain Monte Carlo
 fit_modif = sm_modif.sample(
 	data = mdl_data, show_progress = True, chains = 4,
 	iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
 
 fit_modif.draws().shape # iterations, chains, parameters
-fit_modif.summary().loc[var_name] # pandas DataFrame
-fit_modif.diagnose()
+fit_modif.summary().loc[vb_name] # pandas DataFrame
+print(fit_modif.diagnose())
 
 posterior = {k: fit_modif.stan_variable(k) for k in var_name}
 
 az_trace = az.from_cmdstanpy(fit_modif)
-az.summary(az_trace).loc[var_name] # pandas DataFrame
+az.summary(az_trace).loc[vb_name] # pandas DataFrame
 az.plot_trace(az_trace, var_names = var_name)

@@ -47,8 +47,6 @@ with open(modelfile_ols, "w") as file: file.write(model_data_stan + """
 """)
 
 sm_ols = CmdStanModel(stan_file = modelfile_ols)
-optim_raw_ols = sm_ols.optimize(data = model_data_dict).optimized_params_dict
-optim_ols = {k: optim_raw_ols[k] for k in var_name}
 fit_ols = sm_ols.sample(
 	data = model_data_dict, show_progress = True, chains = 4,
 	iter_sampling = 50000, iter_warmup = 10000, thin = 5
@@ -56,7 +54,7 @@ fit_ols = sm_ols.sample(
 
 fit_ols.draws().shape # iterations, chains, parameters
 fit_ols.summary().loc[var_name] # pandas DataFrame
-fit_ols.diagnose()
+print(fit_ols.diagnose())
 
 posterior_ols = {k: fit_ols.stan_variable(k) for k in var_name}
 
@@ -66,7 +64,7 @@ az.plot_trace(az_trace_ols, var_names = var_name)
 
 gd = sns.jointplot(
 	x = posterior_ols["b0"], y = posterior_ols["b1"],
-	marginal_kws={"kde": True, "kde_kws": {"cut": 1}},
+	marginal_kws = {"kde": True, "kde_kws": {"cut": 1}},
 )
 gd.plot_joint(sns.kdeplot, zorder = 2, n_levels = 10, cmap = "gray_r")
 gd.fig.suptitle("Posterior joint distribution (OLS)", y = 1.02)
@@ -88,8 +86,6 @@ with open(modelfile_studentt, "w") as file: file.write(model_data_stan + """
 var_name_studentt = var_name + ["df"]
 
 sm_studentt = CmdStanModel(stan_file = modelfile_studentt)
-optim_raw_studentt = sm_studentt.optimize(data = model_data_dict).optimized_params_dict
-optim_studentt = {k: optim_raw_studentt[k] for k in var_name_studentt}
 fit_studentt = sm_studentt.sample(
 	data = model_data_dict, show_progress = True, chains = 4,
 	iter_sampling = 50000, iter_warmup = 10000, thin = 5
@@ -97,7 +93,7 @@ fit_studentt = sm_studentt.sample(
 
 fit_studentt.draws().shape # iterations, chains, parameters
 fit_studentt.summary().loc[var_name_studentt] # pandas DataFrame
-fit_studentt.diagnose()
+print(fit_studentt.diagnose())
 
 posterior_studentt = {k: fit_studentt.stan_variable(k) for k in var_name_studentt}
 
@@ -135,8 +131,6 @@ var_name_hogg_array = var_name + ["Y_outlier", "sigmaY_outlier", "cluster_prob[1
 var_name_hogg_combi = var_name + ["Y_outlier", "sigmaY_outlier", "cluster_prob"]
 
 sm_hogg = CmdStanModel(stan_file = modelfile_hogg)
-optim_raw_hogg = sm_hogg.optimize(data = model_data_dict).optimized_params_dict
-optim_hogg = {k: optim_raw_hogg[k] for k in var_name_hogg_array}
 fit_hogg = sm_hogg.sample(
 	data = model_data_dict, show_progress = True, chains = 4,
 	iter_sampling = 50000, iter_warmup = 10000, thin = 5
@@ -144,7 +138,7 @@ fit_hogg = sm_hogg.sample(
 
 fit_hogg.draws().shape # iterations, chains, parameters
 fit_hogg.summary().loc[var_name_hogg_array] # pandas DataFrame
-fit_hogg.diagnose()
+print(fit_hogg.diagnose())
 
 posterior_hogg = {k: fit_hogg.stan_variable(k) for k in var_name_hogg_combi}
 
@@ -171,7 +165,7 @@ for var in var_name:
 		"y": np.concatenate((a, b, c)),
 		"model": np.repeat([
 			f"OLS: {a.mean():.1f}", f"Student-T: {b.mean():.1f}", f"Hogg method: {c.mean():.1f}"
-		], 24000) # nb of data pts
+		], 40000) # nb of data pts: 4chains × 50000 iter ÷ 5 thin
 	})
 	g = sns.displot(data, x = "y", hue = "model", bins = "sqrt", kde = True, palette = ["r", "g", "m"])
 	g.fig.suptitle(f"Posterior distribution: {var}")

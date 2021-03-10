@@ -100,8 +100,19 @@ nchain = 4
 var_name = ["halo_pos"]
 
 sm = CmdStanModel(stan_file = modelfile, cpp_options = {"STAN_THREADS": True}) # parallelization
-optim_raw = sm.optimize(data = mdl_data).optimized_params_dict
-optim = {k: optim_raw[k] for k in var_name}
+
+# maximum likelihood estimation
+optim = sm.optimize(data = mdl_data).optimized_params_pd
+optim[optim.columns[~optim.columns.str.startswith("lp")]]
+
+# variational inference
+vb = sm.variational(data = mdl_data)
+vb.variational_sample.columns = vb.variational_params_dict.keys()
+vb_name = vb.variational_params_pd.columns[~vb.variational_params_pd.columns.str.startswith(("lp", "log_"))]
+vb.variational_params_pd[vb_name]
+vb.variational_sample[vb_name]
+
+# Markov chain Monte Carlo
 fit = sm.sample( # very very slow
 	data = mdl_data, show_progress = True, chains = nchain, # adapt_delta = .95,
 	iter_sampling = 50000, iter_warmup = 10000, thin = 5, threads_per_chain = 2, # parallelization
@@ -110,13 +121,13 @@ fit = sm.sample( # very very slow
 )
 
 fit.draws().shape # iterations, chains, parameters
-fit.summary().loc[var_name] # pandas DataFrame
-fit.diagnose()
+fit.summary().loc[vb_name] # pandas DataFrame
+print(fit.diagnose())
 
 posterior = {k: fit.stan_variable(k) for k in var_name}
 
 az_trace = az.from_cmdstanpy(fit)
-az.summary(az_trace).loc[var_name] # pandas DataFrame
+az.summary(az_trace).loc[vb_name] # pandas DataFrame
 az.plot_trace(az_trace, var_names = var_name)
 
 draw_sky(data_sky, SkyID)

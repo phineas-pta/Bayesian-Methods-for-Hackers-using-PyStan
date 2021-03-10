@@ -70,10 +70,6 @@ with open(modelfile, "w") as file: file.write("""
 """)
 
 sm = CmdStanModel(stan_file = modelfile)
-fit = sm.sample(
-	data = mdl_data, show_progress = True, chains = 4,
-	iter_sampling = 50000, iter_warmup = 10000, thin = 5
-)
 
 #%% reparameterization for more efficient computation: Bartlett decomposition
 
@@ -128,8 +124,19 @@ var_name_repar_array = [f"locs[{i}]" for i in Xrange] + [f"A[{i},{i}]" for i in 
 var_name_repar_combi = ["locs", "A"]
 
 sm_repar = CmdStanModel(stan_file = modelfile_repar)
-optim_raw_repar = sm_repar.optimize(data = mdl_data).optimized_params_dict
-optim_repar = {k: optim_raw_repar[k] for k in var_name_repar_array}
+
+# maximum likelihood estimation
+optim_repar = sm_repar.optimize(data = mdl_data).optimized_params_pd
+optim_repar[var_name_repar_array]
+
+# variational inference
+vb_repar = sm_repar.variational(data = mdl_data)
+vb_repar.variational_sample.columns = vb_repar.variational_params_dict.keys()
+vb_name_repar = vb_repar.variational_params_pd.columns[~vb_repar.variational_params_pd.columns.str.startswith(("lp", "log_"))]
+vb_repar.variational_params_pd[var_name_repar_array]
+vb_repar.variational_sample[var_name_repar_array]
+
+# Markov chain Monte Carlo
 fit_repar = sm_repar.sample(
 	data = mdl_data, show_progress = True, chains = 4,
 	iter_sampling = 50000, iter_warmup = 10000, thin = 5
@@ -137,7 +144,7 @@ fit_repar = sm_repar.sample(
 
 fit_repar.draws().shape # iterations, chains, parameters
 fit_repar.summary().loc[var_name_repar_array] # pandas DataFrame
-fit_repar.diagnose()
+print(fit_repar.diagnose())
 
 posterior_repar = {k: fit_repar.stan_variable(k) for k in var_name_repar_combi}
 

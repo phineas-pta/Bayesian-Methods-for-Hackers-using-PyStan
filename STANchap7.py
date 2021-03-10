@@ -72,12 +72,20 @@ var_name_array = ["alpha"] + [f"beta[{i+1}]" for i in range(mdl_data["K"])]
 var_name_combi = ["alpha", "beta"]
 
 sm = CmdStanModel(stan_file = modelfile)
-optim_raw = sm.optimize(data = mdl_data).optimized_params_dict
-optim = {k: optim_raw[k] for k in var_name_array}
 
-listBetas = np.array([optim_raw[f"beta[{i+1}]"] for i in range(mdl_data["K"])])
-plt.bar(range(1, mdl_data["K"]+1), height = np.abs(listBetas), log = True)
+# maximum likelihood estimation
+optim = sm.optimize(data = mdl_data).optimized_params_pd
+optim[optim.columns[~optim.columns.str.startswith("lp")]]
+plt.plot(optim[var_name_array[1:]].values[0])
 
+# variational inference
+vb = sm.variational(data = mdl_data)
+vb.variational_sample.columns = vb.variational_params_dict.keys()
+vb_name = vb.variational_params_pd.columns[~vb.variational_params_pd.columns.str.startswith(("lp", "log_"))]
+vb.variational_params_pd[var_name_array]
+vb.variational_sample[var_name_array]
+
+# Markov chain Monte Carlo
 fit = sm.sample(
 	data = mdl_data, show_progress = True, chains = 4,
 	iter_sampling = 50000, iter_warmup = 10000, thin = 5
@@ -85,7 +93,7 @@ fit = sm.sample(
 
 fit.draws().shape # iterations, chains, parameters
 fit.summary().loc[var_name_array] # pandas DataFrame
-fit.diagnose()
+print(fit.diagnose())
 
 posterior = {k: fit_modif.stan_variable(k) for k in var_name_combi}
 
