@@ -220,8 +220,15 @@ with open(modelfile_full, "w") as file: file.write("""
 		vector<lower=-1,upper=1>[N] rhoXY;
 	}
 
-	transformed data { // a cste
-		real angle90 = pi()/2;
+	transformed data {
+		real angle90 = pi()/2; // a cste
+		vector[2] Z[N]; // data pt in vector form
+		matrix[2,2] S[N]; // each data point’s covariance matrix
+		for (i in 1:N) {
+			Z[i] = [X[i], Y[i]]';
+			real covXY = rhoXY[i]*sigmaX[i]*sigmaY[i];
+			S[i] = [[sigmaX[i]^2, covXY], [covXY, sigmaY[i]^2]];
+		}
 	}
 
 	parameters { // discrete parameters impossible
@@ -233,11 +240,8 @@ with open(modelfile_full, "w") as file: file.write("""
 		vector[2] v = [-sin(theta), cos(theta)]'; //  unit vector orthogonal to the line
 		real lp = 0; // log prob
 		for (i in 1:N) {
-			vector[2] Zi = [X[i], Y[i]]';
-			real covXY = rhoXY[i]*sigmaX[i]*sigmaY[i];
-			matrix[2,2] Si = [[sigmaX[i]^2, covXY], [covXY, sigmaY[i]^2]]; // each data point’s covariance matrix
-			real delta = v'*Zi - b*v[2]; // orthogonal displacement of each data point from the line
-			real sigma2 = v'*Si*v; // orthogonal variance of projection of each data point to the line
+			real delta = v'*Z[i] - b*v[2]; // orthogonal displacement of each data point from the line
+			real sigma2 = v'*S[i]*v; // orthogonal variance of projection of each data point to the line
 			lp -= delta^2/2/sigma2;
 		}
 	}
@@ -273,3 +277,78 @@ no_outliers.plot.scatter(x = "x", y = "y", xerr = "sigma_x", yerr = "sigma_y", c
 b0, b1 = posterior_full["b"].mean(), posterior_full["m"].mean() # name changed
 plt.plot(Xrange, b0 + b1 * Xrange, label = f"$ y = {b0:.1f} + {b1:.1f}x $")
 plt.legend(loc = "lower right")
+
+#%% full model with intrinsic scatter
+
+modelfile_full_intrinsic = "mdl_full_intrinsic.stan"
+with open(modelfile_full_intrinsic, "w") as file: file.write("""
+	data {
+		int<lower=0> N;
+		vector[N] X;
+		vector[N] Y;
+		vector<lower=0>[N] sigmaX;
+		vector<lower=0>[N] sigmaY;
+		vector<lower=-1,upper=1>[N] rhoXY;
+	}
+
+	transformed data {
+		real angle90 = pi()/2; // a cste
+		vector[2] Z[N]; // data pt in vector form
+		matrix[2,2] S[N]; // each data point’s covariance matrix
+		for (i in 1:N) {
+			Z[i] = [X[i], Y[i]]';
+			real covXY = rhoXY[i]*sigmaX[i]*sigmaY[i];
+			S[i] = [[sigmaX[i]^2, covXY], [covXY, sigmaY[i]^2]];
+		}
+	}
+
+	parameters { // discrete parameters impossible
+		real<lower=-angle90,upper=angle90> theta; // angle of the fitted line
+		real b; // intercept
+		real<lower=0> V; // intrinsic Gaussian variance orthogonal to the line
+	}
+
+	transformed parameters {
+		vector[2] v = [-sin(theta), cos(theta)]'; //  unit vector orthogonal to the line
+		real lp = 0; // log prob
+		for (i in 1:N) {
+			real delta = v'*Z[i] - b*v[2]; // orthogonal displacement of each data point from the line
+			real sigma2 = v'*S[i]*v; // orthogonal variance of projection of each data point to the line
+			real tmp = sigma2 + V; // intermediary result
+			lp -= .5*(log(tmp) + delta^2/tmp);
+		}
+	}
+
+	model {
+		theta ~ uniform(-angle90, angle90);
+		target += lp;
+	}
+
+	generated quantities {
+		real m = tan(theta); // slope
+		real sqrtV = sqrt(V);
+	}
+""")
+var_name_full_intrinsic = var_name_full + ["V", "sqrtV"]
+
+sm_full_intrinsic = CmdStanModel(stan_file = modelfile_full_intrinsic)
+fit_full_intrinsic = sm_full_intrinsic.sample(
+	data = mdl_full_data, show_progress = True, chains = 4,
+	iter_sampling = 50000, iter_warmup = 10000, thin = 5
+)
+
+fit_full_intrinsic.draws().shape # iterations, chains, parameters
+fit_full_intrinsic.summary().loc[var_name_full_intrinsic] # pandas DataFrame
+print(fit_full_intrinsic.diagnose())
+
+posterior_full_intrinsic = {k: fit_full_intrinsic.stan_variable(k) for k in var_name_full_intrinsic}
+
+az_trace_full_intrinsic = az.from_cmdstanpy(fit_full_intrinsic)
+az.summary(az_trace_full_intrinsic) # pandas DataFrame
+az.plot_trace(az_trace_full_intrinsic, var_names = var_name_full_intrinsic)
+
+no_outliers.plot.scatter(x = "x", y = "y", xerr = "sigma_x", yerr = "sigma_y", c = "b")
+b0, b1 = posterior_full_intrinsic["b"].mean(), posterior_full_intrinsic["m"].mean()
+sqrtV = posterior_full_intrinsic["sqrtV"].mean()
+plt.plot(Xrange, b0 + b1 * Xrange + sqrtV, linestyle = "--")
+plt.plot(Xrange, b0 + b1 * Xrange - sqrtV, linestyle = "--")
