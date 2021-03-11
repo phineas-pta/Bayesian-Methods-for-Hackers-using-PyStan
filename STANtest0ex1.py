@@ -195,3 +195,81 @@ log_p_assign_1bis = scipy.special.logsumexp(log_p_assign_1, axis=-1) - np.log(lo
 p_assign_1 = np.exp(log_p_assign_1bis)
 dfhogg["is_outlier"] = [f"{100*i:.2f} %" for i in p_assign_1]
 dfhogg["classed_as_outlier"] = p_assign_1 >= .95
+
+#%% remove outliers + full model with all variances
+
+no_outliers = dfhogg[~dfhogg.classed_as_outlier]
+
+mdl_full_data = dict(
+	N = len(no_outliers),
+	X = no_outliers['x'].values,
+	Y = no_outliers['y'].values,
+	sigmaX = no_outliers['sigma_x'].values,
+	sigmaY = no_outliers['sigma_y'].values,
+	rhoXY = no_outliers['rho_xy'].values
+)
+
+modelfile_full = "mdl_full.stan"
+with open(modelfile_full, "w") as file: file.write("""
+	data {
+		int<lower=0> N;
+		vector[N] X;
+		vector[N] Y;
+		vector<lower=0>[N] sigmaX;
+		vector<lower=0>[N] sigmaY;
+		vector<lower=-1,upper=1>[N] rhoXY;
+	}
+
+	transformed data { // a cste
+		real angle90 = pi()/2;
+	}
+
+	parameters { // discrete parameters impossible
+		real<lower=-angle90,upper=angle90> theta; // angle of the fitted line
+		real b; // intercept
+	}
+
+	transformed parameters {
+		vector[2] v = [-sin(theta), cos(theta)]'; //  unit vector orthogonal to the line
+		real lp = 0; // log prob
+		for (i in 1:N) {
+			vector[2] Zi = [X[i], Y[i]]';
+			real covXY = rhoXY[i]*sigmaX[i]*sigmaY[i];
+			matrix[2,2] Si = [[sigmaX[i]^2, covXY], [covXY, sigmaY[i]^2]]; // each data point’s covariance matrix
+			real delta = v'*Zi - b*v[2]; // orthogonal displacement of each data point from the line
+			real sigma2 = v'*Si*v; // orthogonal variance of projection of each data point to the line
+			lp -= delta^2/2/sigma2;
+		}
+	}
+
+	model {
+		theta ~ uniform(-angle90, angle90);
+		target += lp;
+	}
+
+	generated quantities {
+		real m = tan(theta); // slope
+	}
+""")
+var_name_full = ["m", "b", "theta"]
+
+sm_full = CmdStanModel(stan_file = modelfile_full)
+fit_full = sm_full.sample(
+	data = mdl_full_data, show_progress = True, chains = 4,
+	iter_sampling = 50000, iter_warmup = 10000, thin = 5
+)
+
+fit_full.draws().shape # iterations, chains, parameters
+fit_full.summary().loc[var_name_full] # pandas DataFrame
+print(fit_full.diagnose())
+
+posterior_full = {k: fit_full.stan_variable(k) for k in var_name_full}
+
+az_trace_full = az.from_cmdstanpy(fit_full)
+az.summary(az_trace_full) # pandas DataFrame
+az.plot_trace(az_trace_full, var_names = var_name_full)
+
+no_outliers.plot.scatter(x = "x", y = "y", xerr = "sigma_x", yerr = "sigma_y", c = "b")
+b0, b1 = posterior_full["b"].mean(), posterior_full["m"].mean() # name changed
+plt.plot(Xrange, b0 + b1 * Xrange, label = f"$ y = {b0:.1f} + {b1:.1f}x $")
+plt.legend(loc = "lower right")
