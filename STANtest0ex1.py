@@ -273,8 +273,8 @@ az_trace_full = az.from_cmdstanpy(fit_full)
 az.summary(az_trace_full) # pandas DataFrame
 az.plot_trace(az_trace_full, var_names = var_name_full)
 
-no_outliers.plot.scatter(x = "x", y = "y", xerr = "sigma_x", yerr = "sigma_y", c = "b")
 b0, b1 = posterior_full["b"].mean(), posterior_full["m"].mean() # name changed
+no_outliers.plot.scatter(x = "x", y = "y", xerr = "sigma_x", yerr = "sigma_y", c = "b")
 plt.plot(Xrange, b0 + b1 * Xrange, label = f"$ y = {b0:.1f} + {b1:.1f}x $")
 plt.legend(loc = "lower right")
 
@@ -326,10 +326,10 @@ with open(modelfile_full_intrinsic, "w") as file: file.write("""
 
 	generated quantities {
 		real m = tan(theta); // slope
-		real sqrtV = sqrt(V);
+		real move_up = sqrt(V) / v[2];
 	}
 """)
-var_name_full_intrinsic = var_name_full + ["V", "sqrtV"]
+var_name_full_intrinsic = var_name_full + ["V", "move_up"]
 
 sm_full_intrinsic = CmdStanModel(stan_file = modelfile_full_intrinsic)
 fit_full_intrinsic = sm_full_intrinsic.sample(
@@ -347,8 +347,10 @@ az_trace_full_intrinsic = az.from_cmdstanpy(fit_full_intrinsic)
 az.summary(az_trace_full_intrinsic) # pandas DataFrame
 az.plot_trace(az_trace_full_intrinsic, var_names = var_name_full_intrinsic)
 
-no_outliers.plot.scatter(x = "x", y = "y", xerr = "sigma_x", yerr = "sigma_y", c = "b")
 b0, b1 = posterior_full_intrinsic["b"].mean(), posterior_full_intrinsic["m"].mean()
-sqrtV = posterior_full_intrinsic["sqrtV"].mean()
-plt.plot(Xrange, b0 + b1 * Xrange + sqrtV, linestyle = "--")
-plt.plot(Xrange, b0 + b1 * Xrange - sqrtV, linestyle = "--")
+move_up = posterior_full_intrinsic["move_up"].mean()
+no_outliers.plot.scatter(x = "x", y = "y", xerr = "sigma_x", yerr = "sigma_y", c = "b")
+plt.plot(Xrange, b0 + b1 * Xrange, label = f"$ y = {b0:.1f} + {b1:.1f}x $")
+plt.plot(Xrange, b0 + b1 * Xrange + move_up, linestyle = "--")
+plt.plot(Xrange, b0 + b1 * Xrange - move_up, linestyle = "--")
+plt.legend(loc = "lower right")
