@@ -238,17 +238,17 @@ with open(modelfile_full, "w") as file: file.write("""
 
 	transformed parameters {
 		vector[2] v = [-sin(theta), cos(theta)]'; //  unit vector orthogonal to the line
-		real lp = 0; // log prob
+		vector[N] lp; // log prob
 		for (i in 1:N) {
-			real delta = v'*Z[i] - b*v[2]; // orthogonal displacement of each data point from the line
-			real sigma2 = v'*S[i]*v; // orthogonal variance of projection of each data point to the line
-			lp -= delta^2/2/sigma2;
+			real delta = dot_product(v, Z[i]) - b*v[2]; // orthogonal displacement of each data point from the line
+			real sigma2 = quad_form(S[i], v); // orthogonal variance of projection of each data point to the line
+			lp[i] = delta^2/2/sigma2; // sum(lp) is faster than +=
 		}
 	}
 
 	model {
 		theta ~ uniform(-angle90, angle90);
-		target += lp;
+		target += -sum(lp); // ATTENTION sign
 	}
 
 	generated quantities {
@@ -310,18 +310,18 @@ with open(modelfile_full_intrinsic, "w") as file: file.write("""
 
 	transformed parameters {
 		vector[2] v = [-sin(theta), cos(theta)]'; //  unit vector orthogonal to the line
-		real lp = 0; // log prob
+		vector[N] lp; // log prob
 		for (i in 1:N) {
-			real delta = v'*Z[i] - b*v[2]; // orthogonal displacement of each data point from the line
-			real sigma2 = v'*S[i]*v; // orthogonal variance of projection of each data point to the line
+			real delta = dot_product(v, Z[i]) - b*v[2]; // orthogonal displacement of each data point from the line
+			real sigma2 = quad_form(S[i], v); // orthogonal variance of projection of each data point to the line
 			real tmp = sigma2 + V; // intermediary result
-			lp -= .5*(log(tmp) + delta^2/tmp);
+			lp[i] = .5*(log(tmp) + delta^2/tmp); // sum(lp) is faster than +=
 		}
 	}
 
 	model {
 		theta ~ uniform(-angle90, angle90);
-		target += lp;
+		target += -sum(lp); // ATTENTION sign
 	}
 
 	generated quantities {
