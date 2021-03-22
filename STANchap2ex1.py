@@ -34,22 +34,11 @@ with open(modelfile, "w") as file: file.write("""
 		lambda2 ~ gamma(alpha, beta);
 		tau ~ uniform(1, N);
 
-		for (i in 1:N) {
-			if (i < tau) {
-				obs[i] ~ poisson(lambda1);
-			} else {
-				obs[i] ~ poisson(lambda2);
-			}
-		}
+		for (i in 1:N) obs[i] ~ poisson(i < tau ? lambda1 : lambda2);
 	}
 """)
 
 sm = CmdStanModel(stan_file = modelfile)
-optim = sm.optimize(data = mdl_data).optimized_params_dict
-fit = sm.sample(
-	data = mdl_data, show_progress = True, chains = 4,
-	iter_sampling = 50000, iter_warmup = 10000, thin = 5
-)
 
 # model copied from stan docs: a lot faster
 modelfile_modif = "count_modif.stan"

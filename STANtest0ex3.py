@@ -82,8 +82,7 @@ with open(modelfile_unpooled, "w") as file: file.write("""
 
 	transformed parameters {
 		vector[N] y_hat;
-		for (i in 1:N)
-			y_hat[i] = beta * x[i] + a[county[i]];
+		for (i in 1:N) y_hat[i] = beta * x[i] + a[county[i]];
 	}
 
 	model {
@@ -116,8 +115,7 @@ with open(modelfile_partial_pooling, "w") as file: file.write("""
 
 	transformed parameters {
 		vector[N] y_hat;
-		for (i in 1:N)
-			y_hat[i] = a[county[i]];
+		for (i in 1:N) y_hat[i] = a[county[i]];
 	}
 
 	model {
@@ -154,8 +152,7 @@ with open(modelfile_varying_intercept, "w") as file: file.write("""
 
 	transformed parameters {
 		vector[N] y_hat;
-		for (i in 1:N)
-			y_hat[i] = a[county[i]] + x[i] * b;
+		for (i in 1:N) y_hat[i] = a[county[i]] + x[i] * b;
 	}
 
 	model {
@@ -194,8 +191,7 @@ with open(modelfile_varying_slope, "w") as file: file.write("""
 
 	transformed parameters {
 		vector[N] y_hat;
-		for (i in 1:N)
-			y_hat[i] = a + x[i] * b[county[i]];
+		for (i in 1:N) y_hat[i] = a + x[i] * b[county[i]];
 	}
 
 	model {
@@ -234,12 +230,16 @@ with open(modelfile_varying_intercept_slope, "w") as file: file.write("""
 		real mu_b;
 	}
 
+	transformed parameters {
+		vector[N] y_hat = a[county] + b[county] .* x;
+	}
+
 	model {
 		mu_a ~ normal(0, 100);
 		mu_b ~ normal(0, 100);
 		a ~ normal(mu_a, sigma_a);
 		b ~ normal(mu_b, sigma_b);
-		y ~ normal(a[county] + b[county] .* x, sigma);
+		y ~ normal(y_hat, sigma);
 	}
 """)
 sm_varying_intercept_slope = CmdStanModel(stan_file = modelfile_varying_intercept_slope)
@@ -271,11 +271,7 @@ with open(modelfile_hierarchical_intercept, "w") as file: file.write("""
 
 	transformed parameters {
 		vector[N] y_hat;
-		vector[N] m;
-		for (i in 1:N) {
-			m[i] = a[county[i]] + u[i] * b[1];
-			y_hat[i] = m[i] + x[i] * b[2];
-		}
+		for (i in 1:N) y_hat[i] = a[county[i]] + u[i] * b[1] + x[i] * b[2];
 	}
 
 	model {
@@ -315,8 +311,7 @@ with open(modelfile_contextual_effect, "w") as file: file.write("""
 
 	transformed parameters {
 		vector[N] y_hat;
-		for (i in 1:N)
-			y_hat[i] = a[county[i]] + u[i]*b[1] + x[i]*b[2] + x_mean[i]*b[3];
+		for (i in 1:N) y_hat[i] = a[county[i]] + u[i] * b[1] + x[i] * b[2] + x_mean[i] * b[3];
 	}
 	model {
 		mu_a ~ normal(0, 1);
@@ -360,10 +355,8 @@ with open(modelfile_contextual_pred, "w") as file: file.write("""
 
 	transformed parameters {
 		vector[N] y_hat;
-		real stl_mu;
-		for (i in 1:N)
-			y_hat[i] = a[county[i]] + u[i] * b[1] + x[i] * b[2] + x_mean[i] * b[3];
-		stl_mu = a[stl+1] + u_stl * b[1] + b[2] + xbar_stl * b[3];
+		for (i in 1:N) y_hat[i] = a[county[i]] + u[i] * b[1] + x[i] * b[2] + x_mean[i] * b[3];
+		real stl_mu = a[stl+1] + u_stl * b[1] + b[2] + xbar_stl * b[3];
 	}
 
 	model {

@@ -237,7 +237,7 @@ with open(modelfile_full, "w") as file: file.write("""
 	}
 
 	transformed parameters {
-		vector[2] v = [-sin(theta), cos(theta)]'; //  unit vector orthogonal to the line
+		vector[2] v = [-sin(theta), cos(theta)]'; // unit vector orthogonal to the line
 		vector[N] lp; // log prob
 		for (i in 1:N) {
 			real delta = dot_product(v, Z[i]) - b*v[2]; // orthogonal displacement of each data point from the line
@@ -309,7 +309,7 @@ with open(modelfile_full_intrinsic, "w") as file: file.write("""
 	}
 
 	transformed parameters {
-		vector[2] v = [-sin(theta), cos(theta)]'; //  unit vector orthogonal to the line
+		vector[2] v = [-sin(theta), cos(theta)]'; // unit vector orthogonal to the line
 		vector[N] lp; // log prob
 		for (i in 1:N) {
 			real delta = dot_product(v, Z[i]) - b*v[2]; // orthogonal displacement of each data point from the line
