@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np, arviz as az, matplotlib.pyplot as plt
+import numpy as np, arviz as az
 from cmdstanpy import CmdStanModel
 
 # data for model fitting
@@ -8,49 +8,35 @@ N = 5
 time_since_joined = np.array([4.5, 6., 7., 12., 18.])
 slack_comments = np.array([7500, 10100, 18600, 25200, 27500])
 github_commits = np.array([25, 32, 49, 66, 96])
-names = np.array(["Alice", "Bob", "Cole", "Danielle", "Erika"])
+names = ["Alice", "Bob", "Cole", "Danielle", "Erika"]
 
 # data for out of sample predictions
 N_pred = 2
 candidate_devs_time = np.array([3.6, 5.1])
-candidate_devs = np.array(["Francis", "Gerard"])
+candidate_devs = ["Francis", "Gerard"]
 
 # prior distrib
 modelfile_prior = "prior.stan"
 with open(modelfile_prior, "w") as file: file.write("""
 	data {
 		int<lower=0> N;
-		real time_since_joined[N];
+		vector<lower=0>[N] time_since_joined;
 	}
 
 	generated quantities {
-		real b0;
-		real b1;
-		real log_b_sigma;
-		real<lower=0> b_sigma;
+		real b0 = normal_rng(0, 200);
+		real b1 = normal_rng(0, 200);
+		real<lower=0> b_sigma = abs(normal_rng(0, 300));
+		real log_b_sigma = log(b_sigma);
 
-		real c0;
-		real c1;
-		real log_c_sigma;
-		real<lower=0> c_sigma;
+		real c0 = normal_rng(0, 10);
+		real c1 = normal_rng(0, 10);
+		real<lower=0> c_sigma = fabs(normal_rng(0, 6));
+		real log_c_sigma = log(b_sigma);
 
-		vector[N] slack_comments_hat;
-		vector[N] github_commits_hat;
-
-		b0 = normal_rng(0, 200);
-		b1 = normal_rng(0, 200);
-		b_sigma = abs(normal_rng(0, 300));
-		log_b_sigma = log(b_sigma);
-
-		c0 = normal_rng(0, 10);
-		c1 = normal_rng(0, 10);
-		c_sigma = fabs(normal_rng(0, 6));
-		log_c_sigma = log(b_sigma);
-
-		for (n in 1:N) {
-			slack_comments_hat[n] = normal_rng(b0 + b1 * time_since_joined[n], b_sigma);
-			github_commits_hat[n] = normal_rng(c0 + c1 * time_since_joined[n], c_sigma);
-		}
+		// must be array
+		real slack_comments_hat[N] = normal_rng(b0 + b1 * time_since_joined, b_sigma);
+		real github_commits_hat[N] = normal_rng(c0 + c1 * time_since_joined, c_sigma);
 	}
 """)
 
@@ -90,40 +76,24 @@ with open(modelfile_posterior, "w") as file: file.write("""
 	}
 
 	model {
-		b0 ~ normal(0,200);
-		b1 ~ normal(0,200);
-		b_sigma ~ normal(0,300);
+		b0 ~ normal(0, 200);
+		b1 ~ normal(0, 200);
 		slack_comments ~ normal(b0 + b1 * time_since_joined, b_sigma);
 		github_commits ~ normal(c0 + c1 * time_since_joined, c_sigma);
 	}
 
 	generated quantities {
-		// elementwise log likelihood
-		vector[N] log_likelihood_slack_comments;
-		vector[N] log_likelihood_github_commits;
+		// elementwise log likelihood: type real???
+		real log_likelihood_slack_comments = normal_lpdf(slack_comments | b0 + b1 * time_since_joined, b_sigma);
+		real log_likelihood_github_commits = normal_lpdf(github_commits | c0 + c1 * time_since_joined, c_sigma);
 
-		// posterior predictive
-		vector[N] slack_comments_hat;
-		vector[N] github_commits_hat;
+		// posterior predictive: must be array
+		real slack_comments_hat[N] = normal_rng(b0 + b1 * time_since_joined, b_sigma);
+		real github_commits_hat[N] = normal_rng(c0 + c1 * time_since_joined, c_sigma);
 
-		// out of sample prediction
-		vector[N_pred] slack_comments_pred;
-		vector[N_pred] github_commits_pred;
-
-		// posterior predictive
-		for (n in 1:N) {
-			log_likelihood_slack_comments[n] = normal_lpdf(slack_comments[n] | b0 + b1 * time_since_joined[n], b_sigma);
-			slack_comments_hat[n] = normal_rng(b0 + b1 * time_since_joined[n], b_sigma);
-
-			log_likelihood_github_commits[n] = normal_lpdf(github_commits[n] | c0 + c1 * time_since_joined[n], c_sigma);
-			github_commits_hat[n] = normal_rng(c0 + c1 * time_since_joined[n], c_sigma);
-		}
-
-		// out of sample prediction
-		for (n in 1:N_pred) {
-			slack_comments_pred[n] = normal_rng(b0 + b1 * time_since_joined_pred[n], b_sigma);
-			github_commits_pred[n] = normal_rng(c0 + c1 * time_since_joined_pred[n], c_sigma);
-		}
+		// out of sample prediction: must be array
+		real slack_comments_pred[N_pred] = normal_rng(b0 + b1 * time_since_joined_pred, b_sigma);
+		real github_commits_pred[N_pred] = normal_rng(c0 + c1 * time_since_joined_pred, c_sigma);
 	}
 """)
 
@@ -136,17 +106,17 @@ posterior = sm_posterior.sample(data={
 
 # save to arviz
 var_name = ["slack_comments","github_commits"]
-idata_stan = az.from_cmdstanpy(
-	posterior=posterior, prior=prior,
-	posterior_predictive=[i + "_hat" for i in var_name],
-	prior_predictive=[i + "_hat" for i in var_name],
-	observed_data=var_name,
-	constant_data=["time_since_joined"],
-	log_likelihood={i: "log_likelihood_" + i for i in var_name},
-	predictions=[i + "_pred" for i in var_name],
-	predictions_constant_data=["time_since_joined_pred"],
-	coords={"developer": names, "candidate developer" : candidate_devs},
-	dims={
+idata_stan = az.from_cmdstanpy( # DOES NOT WORK, problems everywhere, idk why
+	posterior = posterior, prior = prior,
+	posterior_predictive = [i + "_hat" for i in var_name],
+	prior_predictive = [i + "_hat" for i in var_name],
+	observed_data = var_name,
+	constant_data = ["time_since_joined"],
+	log_likelihood = {i: "log_likelihood_" + i for i in var_name},
+	predictions = [i + "_pred" for i in var_name],
+	predictions_constant_data = ["time_since_joined_pred"],
+	coords = {"developer": names, "candidate developer" : candidate_devs},
+	dims = {
 		"slack_comments": ["developer"],
 		"github_commits" : ["developer"],
 		"slack_comments_hat": ["developer"],
