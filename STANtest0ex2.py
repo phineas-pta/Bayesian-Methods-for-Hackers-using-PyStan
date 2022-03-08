@@ -10,8 +10,8 @@ modelfile = "baseball.stan"
 with open(modelfile, "w") as file: file.write("""
 	data {
 		int<lower=0> N;
-		int<lower=0> at_bats[N];
-		int<lower=0> hits[N];
+		array[N] int<lower=0> at_bats;
+		array[N] int<lower=0> hits;
 	}
 
 	parameters { // discrete parameters impossible

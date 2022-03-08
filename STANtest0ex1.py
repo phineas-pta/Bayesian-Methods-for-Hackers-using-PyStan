@@ -5,6 +5,7 @@ from cmdstanpy import CmdStanModel
 
 #%% data
 
+# src: https://docs.pymc.io/en/v3/pymc-examples/examples/generalized_linear_models/GLM-robust-with-outlier-detection.html
 dfhogg = pd.DataFrame(dict(
 	x       = [ 201, 244,  47,  287,  203,  58,  210,  202,  198,  158, 165,  201,  157, 131, 166,  160, 186, 125, 218,   146],
 	y       = [ 592, 401, 583,  402,  495, 173,  479,  504,  510,  416, 393,  442,  317, 311, 400,  337, 423, 334, 533,   344],
@@ -222,8 +223,8 @@ with open(modelfile_full, "w") as file: file.write("""
 
 	transformed data {
 		real angle90 = pi()/2; // a cste
-		vector[2] Z[N]; // data pt in vector form
-		matrix[2,2] S[N]; // each data point’s covariance matrix
+		array[N] vector[2] Z; // data pt in vector form
+		array[N] matrix[2,2] S; // each data point’s covariance matrix
 		for (i in 1:N) {
 			Z[i] = [X[i], Y[i]]';
 			real covXY = rhoXY[i]*sigmaX[i]*sigmaY[i];
@@ -293,8 +294,8 @@ with open(modelfile_full_intrinsic, "w") as file: file.write("""
 
 	transformed data {
 		real angle90 = pi()/2; // a cste
-		vector[2] Z[N]; // data pt in vector form
-		matrix[2,2] S[N]; // each data point’s covariance matrix
+		array[N] vector[2] Z; // data pt in vector form
+		array[N] matrix[2,2] S; // each data point’s covariance matrix
 		for (i in 1:N) {
 			Z[i] = [X[i], Y[i]]';
 			real covXY = rhoXY[i]*sigmaX[i]*sigmaY[i];

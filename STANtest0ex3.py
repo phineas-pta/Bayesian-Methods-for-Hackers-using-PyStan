@@ -69,7 +69,7 @@ with open(modelfile_unpooled, "w") as file: file.write("""
 	data {
 		int<lower=0> N;
 		int<lower=0> J;
-		int<lower=1, upper=J> county[N];
+		array[N] int<lower=1, upper=J> county;
 		vector[N] x;
 		vector[N] y;
 	}
@@ -102,7 +102,7 @@ with open(modelfile_partial_pooling, "w") as file: file.write("""
 	data {
 		int<lower=0> N;
 		int<lower=0> J;
-		int<lower=1, upper=J> county[N];
+		array[N] int<lower=1, upper=J> county;
 		vector[N] y;
 	}
 
@@ -137,7 +137,7 @@ with open(modelfile_varying_intercept, "w") as file: file.write("""
 	data {
 		int<lower=0> J;
 		int<lower=0> N;
-		int<lower=1, upper=J> county[N];
+		array[N] int<lower=1, upper=J> county;
 		vector[N] x;
 		vector[N] y;
 	}
@@ -176,7 +176,7 @@ with open(modelfile_varying_slope, "w") as file: file.write("""
 	data {
 		int<lower=0> J;
 		int<lower=0> N;
-		int<lower=1, upper=J> county[N];
+		array[N] int<lower=1, upper=J> county;
 		vector[N] x;
 		vector[N] y;
 	}
@@ -217,7 +217,7 @@ with open(modelfile_varying_intercept_slope, "w") as file: file.write("""
 		int<lower=0> J;
 		vector[N] y;
 		vector[N] x;
-		int<lower=1, upper=J> county[N];
+		array[N] int<lower=1, upper=J> county;
 	}
 
 	parameters {
@@ -255,7 +255,7 @@ with open(modelfile_hierarchical_intercept, "w") as file: file.write("""
 	data {
 		int<lower=0> J;
 		int<lower=0> N;
-		int<lower=1, upper=J> county[N];
+		array[N] int<lower=1, upper=J> county;
 		vector[N] u;
 		vector[N] x;
 		vector[N] y;
@@ -294,7 +294,7 @@ with open(modelfile_contextual_effect, "w") as file: file.write("""
 	data {
 		int<lower=0> J;
 		int<lower=0> N;
-		int<lower=1, upper=J> county[N];
+		array[N] int<lower=1, upper=J>;
 		vector[N] u;
 		vector[N] x;
 		vector[N] x_mean;
@@ -338,7 +338,7 @@ with open(modelfile_contextual_pred, "w") as file: file.write("""
 		int<lower=0, upper=J> stl;
 		real u_stl;
 		real xbar_stl;
-		int<lower=1, upper=J> county[N];
+		array[N] int<lower=1, upper=J> county;
 		vector[N] u;
 		vector[N] x;
 		vector[N] x_mean;

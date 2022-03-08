@@ -15,7 +15,7 @@ var_sym = Symbol.(var_name);
 mdl_str = "
 	data {
 		int<lower=0> N;
-		int<lower=0> obs[N];
+		array[N] int<lower=0> obs;
 	}
 
 	transformed data {

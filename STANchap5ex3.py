@@ -68,8 +68,8 @@ with open(modelfile, "w") as file: file.write("""
 
 	data { // avoid putting data in matrix except for linear algebra
 		int<lower=0> N;
-		row_vector<lower=0, upper=4200>[2] galaxies[N]; // galaxy position (x, y)
-		row_vector<lower=-1, upper=1>[2] ellipticity[N]; // 2 ellpty
+		array[N] row_vector<lower=0, upper=4200>[2] galaxies; // galaxy position (x, y)
+		array[N] row_vector<lower=-1, upper=1>[2] ellipticity; // 2 ellpty
 	}
 
 	transformed data {
@@ -80,7 +80,7 @@ with open(modelfile, "w") as file: file.write("""
 
 	parameters { // discrete parameters impossible
 		real<lower=0> mass_large; // large halo mass, log uniform does not work ?
-		row_vector<lower=0, upper=4200>[2] halo_pos[N_halos]; // halo position (x, y)
+		array[N_halos] row_vector<lower=0, upper=4200>[2] halo_pos; // halo position (x, y)
 	}
 
 	transformed parameters {

@@ -44,7 +44,7 @@ with open(modelfile, "w") as file: file.write("""
 	data { // avoid putting data in matrix except for linear algebra
 		int<lower=0> N;
 		int<lower=0> N_stocks;
-		row_vector[N_stocks] observations[N];
+		array[N] row_vector[N_stocks] observations;
 	}
 
 	transformed data {

@@ -15,7 +15,7 @@ modelfile = "count.stan"
 with open(modelfile, "w") as file: file.write("""
 	data {
 		int<lower=0> N;
-		int<lower=0> obs[N];
+		array[N] int<lower=0> obs;
 	}
 
 	transformed data {
@@ -45,7 +45,7 @@ modelfile_modif = "count_modif.stan"
 with open(modelfile_modif, "w") as file: file.write("""
 	data {
 		int<lower=0> N;
-		int<lower=0> obs[N];
+		array[N] int<lower=0> obs;
 	}
 
 	transformed data {
