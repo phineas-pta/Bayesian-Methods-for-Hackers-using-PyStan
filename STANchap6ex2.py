@@ -78,7 +78,7 @@ with open(modelfile_repar, "w") as file: file.write("""
 	data { // avoid putting data in matrix except for linear algebra
 		int<lower=0> N;
 		int<lower=0> N_stocks;
-		row_vector[N_stocks] observations[N];
+		array[N] row_vector[N_stocks] observations;;
 	}
 
 	transformed data {
@@ -91,7 +91,7 @@ with open(modelfile_repar, "w") as file: file.write("""
 	parameters { // discrete parameters impossible
 		row_vector[N_stocks] locs;
 		vector[N_stocks] c;
-		vector[N_stocks * (N_stocks - 1) / 2] z;
+		vector[N_stocks * (N_stocks - 1) %/% 2] z;
 	}
 
 	transformed parameters {

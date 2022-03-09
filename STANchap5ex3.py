@@ -52,15 +52,15 @@ with open(modelfile, "w") as file: file.write("""
 		}
 
 		real partial_sum( // model very slow => parallelization (reduce with summation)
-			row_vector[] ellipticity_slice, int start, int end, int N_halos,
-			row_vector[] galaxies, row_vector[] halo_pos, row_vector mass_halos, row_vector cste_f_dist
+			array[] row_vector ellipticity_slice, int start, int end, int N_halos,
+			array[] row_vector galaxies, array[] row_vector halo_pos, row_vector mass_halos, row_vector cste_f_dist
 		) {
 			real res = 0;
 			for (i in start:end) {
 				row_vector[2] ellpty_mvn_loc = [0, 0];
 				for (j in 1:N_halos)
 					ellpty_mvn_loc += tangential_distance(galaxies[i], halo_pos[j]) * mass_halos[j] / f_dist(galaxies[i], halo_pos[j], cste_f_dist[j]);
-				res += normal_lpdf(ellipticity_slice[i] | ellpty_mvn_loc, 0.223607);
+				res += normal_lpdf(ellipticity_slice[i-start+1] | ellpty_mvn_loc, 0.223607);
 			}
 			return res;
 		}

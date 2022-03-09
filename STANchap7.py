@@ -44,7 +44,7 @@ with open(modelfile, "w") as file: file.write("""
 		int N; // the number of training observations
 		int N2; // the number of test observations
 		int K; // the number of features
-		int y[N]; // the response
+		array[N] int y; // the response
 		matrix[N,K] X; // the model matrix
 		matrix[N2,K] new_X; // the matrix for the predicted values
 	}
