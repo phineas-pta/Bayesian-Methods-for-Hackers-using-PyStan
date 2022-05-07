@@ -1,0 +1,36 @@
+model {
+	PI <- 3.1415926536 # because WinBugs does not allow expressions for parameters' distribution
+	angle90_pos <- PI / 2
+	angle90_neg <- -PI / 2
+	theta ~ dunif(angle90_neg, angle90_pos)
+	sin_theta <- sin(theta)
+	cos_theta <- cos(theta)
+	m <- sin_theta / cos_theta
+	b ~ dunif(0, 1)
+	C <- 10000 # this just has to be large enough to ensure all phi[i]'s > 0
+	for (i in 1:N) {
+		delta[i] <- -sin_theta * X[i] + cos_theta * Y[i] - b * cos_theta
+		delta2[i] <- pow(delta[i], 2)
+		variance_x[i] <- pow(sigmaX[i], 2)
+		variance_y[i] <- pow(sigmaY[i], 2)
+		covariance_xy[i] <- rhoXY[i] * sigmaX[i] * sigmaY[i]
+		sigma2[i] <- pow(sin_theta * variance_x[i], 2) - 2 * sin_theta * cos_theta * covariance_xy[i] + pow(cos_theta * variance_y[i], 2)
+		log_likehood[i] <- delta2[i] / 2 / sigma2[i]
+		zeros[i] <- 0
+		phi[i] <- -log_likehood[i] + C
+		zeros[i] ~ dpois(phi[i])
+	}
+}
+
+# data
+list(
+	N = 17,
+	X = c(201, 203, 58, 210, 202, 198, 158, 165, 201, 157, 131, 166, 160, 186, 125, 218, 146),
+	Y = c(592, 495, 173, 479, 504, 510, 416, 393, 442, 317, 311, 400, 337, 423, 334, 533, 344),
+	sigmaX = c(9, 5, 9, 4, 4, 11, 7, 5, 5, 5, 6, 6, 5, 9, 8, 6, 5),
+	sigmaY = c(61, 21, 15, 27, 14, 30, 16, 14, 25, 52, 16, 34, 31, 42, 26, 16, 22),
+	rhoXY = c(-0.84,-0.33,0.67,-0.02,-0.05,-0.84,-0.69,0.3,-0.46,-0.03,0.5,0.73,-0.52,0.9,0.4,-0.78,-0.56)
+)
+
+# init
+list(theta = 0, b = 0)
