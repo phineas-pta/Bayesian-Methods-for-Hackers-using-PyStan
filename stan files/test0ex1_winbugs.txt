@@ -6,18 +6,17 @@ model {
 	sin_theta <- sin(theta)
 	cos_theta <- cos(theta)
 	m <- sin_theta / cos_theta
-	b ~ dunif(0, 1)
-	C <- 10000 # this just has to be large enough to ensure all phi[i]'s > 0
+	b ~ dnorm(0, 1)
+	cste <- 10000 # this just has to be large enough to ensure all phi[i]'s > 0
 	for (i in 1:N) {
 		delta[i] <- -sin_theta * X[i] + cos_theta * Y[i] - b * cos_theta
 		delta2[i] <- pow(delta[i], 2)
-		variance_x[i] <- pow(sigmaX[i], 2)
-		variance_y[i] <- pow(sigmaY[i], 2)
-		covariance_xy[i] <- rhoXY[i] * sigmaX[i] * sigmaY[i]
-		sigma2[i] <- pow(sin_theta * variance_x[i], 2) - 2 * sin_theta * cos_theta * covariance_xy[i] + pow(cos_theta * variance_y[i], 2)
+		proj_var_x[i] <- sin_theta * pow(sigmaX[i], 2) # projected variance
+		proj_var_y[i] <- cos_theta * pow(sigmaY[i], 2)
+		sigma2[i] <- pow(proj_var_x[i], 2) - 2*rhoXY[i]*proj_var_x[i]*proj_var_y[i] + pow(proj_var_y[i], 2)
 		log_likehood[i] <- delta2[i] / 2 / sigma2[i]
+		phi[i] <- cste - log_likehood[i]
 		zeros[i] <- 0
-		phi[i] <- -log_likehood[i] + C
 		zeros[i] ~ dpois(phi[i])
 	}
 }
@@ -31,6 +30,3 @@ list(
 	sigmaY = c(61, 21, 15, 27, 14, 30, 16, 14, 25, 52, 16, 34, 31, 42, 26, 16, 22),
 	rhoXY = c(-0.84,-0.33,0.67,-0.02,-0.05,-0.84,-0.69,0.3,-0.46,-0.03,0.5,0.73,-0.52,0.9,0.4,-0.78,-0.56)
 )
-
-# init
-list(theta = 0, b = 0)
