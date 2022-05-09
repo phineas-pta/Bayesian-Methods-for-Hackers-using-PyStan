@@ -6,14 +6,14 @@ model {
 	sin_theta <- sin(theta)
 	cos_theta <- cos(theta)
 	m <- sin_theta / cos_theta
-	b ~ dnorm(0, 1)
+	b ~ dunif(-100, 100) # prior has a profound impact but yet to find the solution
 	cste <- 10000 # this just has to be large enough to ensure all phi[i]'s > 0
 	for (i in 1:N) {
 		delta[i] <- -sin_theta * X[i] + cos_theta * Y[i] - b * cos_theta
 		delta2[i] <- pow(delta[i], 2)
-		proj_var_x[i] <- sin_theta * pow(sigmaX[i], 2) # projected variance
-		proj_var_y[i] <- cos_theta * pow(sigmaY[i], 2)
-		sigma2[i] <- pow(proj_var_x[i], 2) - 2*rhoXY[i]*proj_var_x[i]*proj_var_y[i] + pow(proj_var_y[i], 2)
+		proj_std_x[i] <- sin_theta * sigmaX[i] # projected standard deviation
+		proj_std_y[i] <- cos_theta * sigmaY[i]
+		sigma2[i] <- pow(proj_std_x[i], 2) - 2*rhoXY[i]*proj_std_x[i]*proj_std_y[i] + pow(proj_std_y[i], 2)
 		log_likehood[i] <- delta2[i] / 2 / sigma2[i]
 		phi[i] <- cste - log_likehood[i]
 		zeros[i] <- 0
