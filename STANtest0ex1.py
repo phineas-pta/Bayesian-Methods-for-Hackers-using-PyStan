@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np, pandas as pd, matplotlib.pyplot as plt, seaborn as sns, arviz as az, scipy
+from matplotlib.patches import Ellipse
 from cmdstanpy import CmdStanModel
 
 #%% data
@@ -13,7 +14,31 @@ dfhogg = pd.DataFrame(dict(
 	sigma_y = [  61,  25,  38,   15,   21,  15,   27,   14,   30,   16,  14,   25,   52,  16,  34,   31,  42,  26,  16,    22],
 	rho_xy  = [-.84, .31, .64, -.27, -.33, .67, -.02, -.05, -.84, -.69,  .3, -.46, -.03,  .5, .73, -.52,  .9,  .4, -.78, -.56]
 ), dtype = "float32")
+
+# scatter plot with error bars
 dfhogg.plot.scatter(x = "x", y = "y", xerr = "sigma_x", yerr = "sigma_y", c = "b")
+# scatter plot with error ellipsis
+plt.scatter(dfhogg["x"].values, dfhogg["y"].values)
+ax = plt.gca()
+for i in range(len(dfhogg)):
+	# ax.add_patch(Ellipse( # the angle doesn't seem right
+	# 	(dfhogg.iloc[i,0], dfhogg.iloc[i,1]), # (x, y)
+	# 	width = 2 * dfhogg.iloc[i,2], # 2 * sigma_x
+	# 	height = 2 * dfhogg.iloc[i,3] * 2, # 2 * sigma_y
+	# 	angle = -45 * dfhogg.iloc[i,4], # -45° * rho_xy
+	# 	edgecolor = "b", facecolor = "none"
+	# ))
+	x = dfhogg.iloc[i,0]
+	y = dfhogg.iloc[i,1]
+	sigma_x = dfhogg.iloc[i,2]
+	sigma_y = dfhogg.iloc[i,3]
+	rho_xy = dfhogg.iloc[i,4]
+	cov = rho_xy * sigma_x * sigma_y
+	cov_mat = np.array([[sigma_x**2, cov], [cov, sigma_y**2]])
+	evals, evecs = scipy.linalg.eigh(cov_mat, eigvals = (0,0)) # eigenvalue, eigenvector
+	angle = np.degrees(np.arctan2(evecs[1][0], evecs[0][0])) # article by Vincent Spruyt
+	ellipse = Ellipse((x,y), width=2*sigma_x, height=2*sigma_y, angle=angle, edgecolor='b', facecolor='none')
+	ax.add_patch(ellipse)
 
 X, Y, sigmaY = dfhogg['x'].values, dfhogg['y'].values, dfhogg['sigma_y'].values
 model_data_dict = {"N": len(dfhogg), "X": X, "Y": Y, "sigmaY": sigmaY}
