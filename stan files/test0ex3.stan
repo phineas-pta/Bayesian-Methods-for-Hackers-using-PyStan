@@ -1,12 +1,13 @@
 /*
-cd /opt/cmdstan && make -j 4 ~/code_playground/test0ex3 && cd ~/code_playground
+cd /opt/cmdstan && make -j 6 ~/coder/test0ex3 && cd ~/coder
 
 ./test0ex3 optimize data file=test0ex3.data.json
 
 ./test0ex3 sample
 	num_chains=4 num_samples=50000 num_warmup=10000 thin=5
 	data file=test0ex3.data.json
-	output file=test0ex3_fit.csv diagnostic_file=test0ex3_dia.csv refresh=0
+	output file=test0ex3_fit.csv diagnostic_file=test0ex3_dia.csv
+	refresh=0 num_threads=4
 
 /opt/cmdstan/bin/stansummary test0ex3_fit_*.csv
 

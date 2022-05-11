@@ -247,12 +247,11 @@ with open(modelfile_full, "w") as file: file.write("""
 	}
 
 	transformed data {
-		real angle90 = pi()/2; // a cste
 		array[N] vector[2] Z; // data pt in vector form
 		array[N] matrix[2,2] S; // each data point’s covariance matrix
 		for (i in 1:N) {
 			Z[i] = [X[i], Y[i]]';
-			real covXY = rhoXY[i]*sigmaX[i]*sigmaY[i];
+			real covXY = rhoXY[i] * sigmaX[i] * sigmaY[i];
 			S[i] = [[sigmaX[i]^2, covXY], [covXY, sigmaY[i]^2]];
 		}
 	}
@@ -264,8 +263,9 @@ with open(modelfile_full, "w") as file: file.write("""
 
 	model {
 		for (i in 1:N) {
-			vector[2] Z_hat_i = [X[i], m * X[i] + b]';
-            Z[i] ~ multi_normal(Z_hat_i, S[i]);
+			real Y_hat_i = m * X[i] + b;
+			vector[2] Z_hat_i = [X[i], Y_hat_i]';
+			Z[i] ~ multi_normal(Z_hat_i, S[i]);
 		}
 	}
 """)
@@ -343,7 +343,7 @@ with open(modelfile_full_intrinsic, "w") as file: file.write("""
 		real move_up = sqrt(V) / v[2];
 	}
 """)
-var_name_full_intrinsic = var_name_full + ["V", "move_up"]
+var_name_full_intrinsic = var_name_full + ["theta", "V", "move_up"]
 
 sm_full_intrinsic = CmdStanModel(stan_file = modelfile_full_intrinsic)
 fit_full_intrinsic = sm_full_intrinsic.sample(
