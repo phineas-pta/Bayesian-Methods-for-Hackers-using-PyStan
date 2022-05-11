@@ -258,30 +258,18 @@ with open(modelfile_full, "w") as file: file.write("""
 	}
 
 	parameters { // discrete parameters impossible
-		real<lower=-angle90,upper=angle90> theta; // angle of the fitted line
+		real m; // slope
 		real b; // intercept
 	}
 
-	transformed parameters {
-		vector[2] v = [-sin(theta), cos(theta)]'; // unit vector orthogonal to the line
-		vector[N] lp; // log prob
+	model {
 		for (i in 1:N) {
-			real delta = dot_product(v, Z[i]) - b*v[2]; // orthogonal displacement of each data point from the line
-			real sigma2 = quad_form(S[i], v); // orthogonal variance of projection of each data point to the line
-			lp[i] = delta^2/2/sigma2; // sum(lp) is faster than +=
+			vector[2] Z_hat_i = [X[i], m * X[i] + b]';
+            Z[i] ~ multi_normal(Z_hat_i, S[i]);
 		}
 	}
-
-	model {
-		theta ~ uniform(-angle90, angle90);
-		target += -sum(lp); // ATTENTION sign
-	}
-
-	generated quantities {
-		real m = tan(theta); // slope
-	}
 """)
-var_name_full = ["m", "b", "theta"]
+var_name_full = ["m", "b"]
 
 sm_full = CmdStanModel(stan_file = modelfile_full)
 fit_full = sm_full.sample(
