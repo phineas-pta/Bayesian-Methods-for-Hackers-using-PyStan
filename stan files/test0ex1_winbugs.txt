@@ -1,32 +1,27 @@
-model {
-	PI <- 3.1415926536 # because WinBugs does not allow expressions for parameters' distribution
-	angle90_pos <- PI / 2
-	angle90_neg <- -PI / 2
-	theta ~ dunif(angle90_neg, angle90_pos)
-	sin_theta <- sin(theta)
-	cos_theta <- cos(theta)
-	m <- sin_theta / cos_theta
-	b ~ dunif(-100, 100) # prior has a profound impact but yet to find the solution
-	cste <- 10000 # this just has to be large enough to ensure all phi[i]'s > 0
-	for (i in 1:N) {
-		delta[i] <- -sin_theta * X[i] + cos_theta * Y[i] - b * cos_theta
-		delta2[i] <- pow(delta[i], 2)
-		proj_std_x[i] <- sin_theta * sigmaX[i] # projected standard deviation
-		proj_std_y[i] <- cos_theta * sigmaY[i]
-		sigma2[i] <- pow(proj_std_x[i], 2) - 2*rhoXY[i]*proj_std_x[i]*proj_std_y[i] + pow(proj_std_y[i], 2)
-		log_likehood[i] <- delta2[i] / 2 / sigma2[i]
-		phi[i] <- cste - log_likehood[i]
-		zeros[i] <- 0
-		zeros[i] ~ dpois(phi[i])
-	}
-}
+model {	
+	m ~ dunif(-100, 100)	
+	b ~ dunif(-100, 100)	
+	for (i in 1:N) {	
+		Z[i, 1] <- X[i]	
+		Z[i, 2] <- Y[i]	
+		Z_hat[i, 1] <- X[i]	
+		Z_hat[i, 2] <- m * X[i] + b	
+		covXY[i] <- rhoXY[i] * sigmaX[i] * sigmaY[i];	
+		S[i, 1, 1] <- pow(sigmaX[i], 2)	
+		S[i, 1, 2] <- covXY[i]	
+		S[i, 2, 1] <- covXY[i]	
+		S[i, 2, 2] <- pow(sigmaY[i], 2)	
+		tau[i, 1:2, 1:2] <- inverse(S[i, 1:2, 1:2])	
+		Z[i, 1:2] ~ dmnorm(Z_hat[i, 1:2], tau[i, 1:2, 1:2])	
+	}	
+}	
 
-# data
-list(
-	N = 17,
-	X = c(201, 203, 58, 210, 202, 198, 158, 165, 201, 157, 131, 166, 160, 186, 125, 218, 146),
-	Y = c(592, 495, 173, 479, 504, 510, 416, 393, 442, 317, 311, 400, 337, 423, 334, 533, 344),
-	sigmaX = c(9, 5, 9, 4, 4, 11, 7, 5, 5, 5, 6, 6, 5, 9, 8, 6, 5),
-	sigmaY = c(61, 21, 15, 27, 14, 30, 16, 14, 25, 52, 16, 34, 31, 42, 26, 16, 22),
-	rhoXY = c(-0.84,-0.33,0.67,-0.02,-0.05,-0.84,-0.69,0.3,-0.46,-0.03,0.5,0.73,-0.52,0.9,0.4,-0.78,-0.56)
+# data	
+list(	
+	N = 17,	
+	X = c(201, 203, 58, 210, 202, 198, 158, 165, 201, 157, 131, 166, 160, 186, 125, 218, 146),	
+	Y = c(592, 495, 173, 479, 504, 510, 416, 393, 442, 317, 311, 400, 337, 423, 334, 533, 344),	
+	sigmaX = c(9, 5, 9, 4, 4, 11, 7, 5, 5, 5, 6, 6, 5, 9, 8, 6, 5),	
+	sigmaY = c(61, 21, 15, 27, 14, 30, 16, 14, 25, 52, 16, 34, 31, 42, 26, 16, 22),	
+	rhoXY = c(-0.84,-0.33,0.67,-0.02,-0.05,-0.84,-0.69,0.3,-0.46,-0.03,0.5,0.73,-0.52,0.9,0.4,-0.78,-0.56)	
 )
