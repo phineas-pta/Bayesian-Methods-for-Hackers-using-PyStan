@@ -38,10 +38,17 @@ parameters { // discrete parameters impossible
 	real b; // intercept
 }
 
+transformed parameters {
+	vector[N] Y_hat = m * X + b;
+	array[N] vector[2] Z_hat;
+	for (i in 1:N) Z_hat[i] = [X[i], Y_hat[i]]';
+}
+
 model {
-	for (i in 1:N) {
-		real Y_hat_i = m * X[i] + b;
-		vector[2] Z_hat_i = [X[i], Y_hat_i]';
-		Z[i] ~ multi_normal(Z_hat_i, S[i]);
-	}
+	for (i in 1:N) Z[i] ~ multi_normal(Z_hat[i], S[i]);
+}
+
+generated quantities {
+	vector[N] log_lik; // pointwise log-likelihood
+	for (i in 1:N) log_lik[i] = multi_normal_lpdf(Z[i] | Z_hat[i], S[i]);
 }
