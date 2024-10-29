@@ -5,9 +5,9 @@ tfd, tfb = tfp.distributions, tfp.bijectors
 tf.config.optimizer.set_jit(True)
 
 count_data = tf.constant([
-    13, 24,  8, 24,  7, 35, 14, 11, 15, 11, 22, 22, 11, 57, 11, 19, 29,  6, 19, 12, 22, 12, 18, 72, 32,  9,  7, 13,
-    19, 23, 27, 20,  6, 17, 13, 10, 14,  6, 16, 15,  7,  2, 15, 15, 19, 70, 49,  7, 53, 22, 21, 31, 19, 11, 18, 20,
-    12, 35, 17, 23, 17,  4,  2, 31, 30, 13, 27,  0, 39, 37,  5, 14, 13, 22,
+	13, 24,  8, 24,  7, 35, 14, 11, 15, 11, 22, 22, 11, 57, 11, 19, 29,  6, 19, 12, 22, 12, 18, 72, 32,  9,  7, 13,
+	19, 23, 27, 20,  6, 17, 13, 10, 14,  6, 16, 15,  7,  2, 15, 15, 19, 70, 49,  7, 53, 22, 21, 31, 19, 11, 18, 20,
+	12, 35, 17, 23, 17,  4,  2, 31, 30, 13, 27,  0, 39, 37,  5, 14, 13, 22,
 ], dtype = "float32")
 
 n = tf.size(count_data, out_type = tf.float32)
@@ -63,7 +63,7 @@ unconstraining_bijectors = [tfb.Exp()]*2 + [tfb.Sigmoid()]
 samples, sampler_stat = run_mcmc(init_state, unconstraining_bijectors)
 
 #%% using the pymc3 naming convention, with log_likelihood instead of lp so that ArviZ can compute loo and waic
-sample_stats_name = ['log_likelihood', 'tree_size', 'diverging', 'energy', 'mean_tree_accept']
+sample_stats_name = ["log_likelihood", "tree_size", "diverging", "energy", "mean_tree_accept"]
 
 sample_stats = {k: v.numpy().T for k, v in zip(sample_stats_name, sampler_stat)}
 posterior = {k: np.swapaxes(v.numpy(), 1, 0) for k, v in zip(var_name, samples)}

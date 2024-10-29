@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+# src: https://www.pymc.io/projects/examples/en/latest/case_studies/hierarchical_partial_pooling.html
+
 import numpy as np, pandas as pd, arviz as az, matplotlib.pyplot as plt
 from cmdstanpy import CmdStanModel
 
@@ -58,11 +60,11 @@ fit.draws().shape # iterations, chains, parameters
 fit.summary().loc[vb_name] # pandas DataFrame
 print(fit.diagnose())
 
-posterior = {k: fit_modif.stan_variable(k) for k in var_name}
+# posterior = {k: fit_modif.stan_variable(k) for k in var_name}
 
 az_trace = az.from_cmdstanpy(fit)
 az.summary(az_trace).loc[vb_name] # pandas DataFrame
 az.plot_trace(az_trace, var_names = ["phi", "kappa"])
 
 az.plot_forest(az_trace, var_names = ["thetas"])
-plt.gca().set_yticklabels(baseball.apply(lambda x: x['FirstName'] + " " + x['LastName'], axis=1).tolist())
+plt.gca().set_yticklabels(baseball.apply(lambda x: x["FirstName"] + " " + x["LastName"], axis=1).tolist())

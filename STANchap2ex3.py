@@ -12,7 +12,7 @@ observed_yes = n1_coin_flip * true_answers + (1 - n1_coin_flip) * n2_coin_flip
 n_yes = np.sum(observed_yes)
 mdl_data = {"N": N, "occur": n_yes}
 
-# EXPLAINATION why prob_yes = .5*prob_cheat + .5² (0.5 = prob flip coin)
+# EXPLAINATION why prob_yes = .5 × prob_cheat + .5² (0.5 = prob flip coin)
 # ┬ cheat = no  ┬ 1st flip = tails ┬ 2nd flip = tails » answer = no
 # |             |                  └ 2nd flip = heads » answer = YES
 # |             └ 1st flip = heads                    » answer = no

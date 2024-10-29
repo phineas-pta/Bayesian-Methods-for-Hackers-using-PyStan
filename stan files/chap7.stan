@@ -1,25 +1,9 @@
 /*
-cd /opt/cmdstan && make -j 6 ~/coder/chap7 && cd ~/coder
+src: https://www.kaggle.com/c/overfitting
 
-./chap7 optimize data file=chap7.data.json
-
-./chap7 sample
-	num_chains=4 num_samples=50000 num_warmup=10000 thin=5
-	data file=chap7.data.json
-	output file=chap7_fit.csv diagnostic_file=chap7_dia.csv
-	refresh=0 num_threads=4
-
-/opt/cmdstan/bin/stansummary chap7_fit_*.csv
-
-./chap7 variational data file=chap7.data.json
-
-for i in {1..4}
-	do
-		./chap7 generate_quantities
-			fitted_params=chap7_fit_${i}.csv
-			data file=chap7.data.json
-			output file=chap7_ppc_${i}.csv &
-	done
+In order to achieve this we have created a simulated data set with 200 variables and 20,000 cases.
+An ‘equation’ based on this data was created in order to generate a Target to be predicted.
+Given the all 20,000 cases, the problem is very easy to solve – but you only get given the Target value of 250 cases – the task is to build a model that gives the best predictions on the remaining 19,750 cases.
 */
 
 data {
@@ -31,21 +15,21 @@ data {
 	matrix[N2,K] new_X; // the matrix for the predicted values
 }
 
-parameters { // regression parameters
-	real alpha;
-	vector[K] beta;
+parameters {
+	real alpha; // intercept
+	vector[K] bbeta; // slopes, `beta` is built-in distrib fx
 }
 
 transformed parameters {
-	vector[N] linpred = alpha + X * beta;
+	vector[N] linpred = alpha + X * bbeta;
 }
 
 model {
 	alpha ~ cauchy(0, 10); // prior for the intercept following Gelman 2008
-	beta ~ student_t(1, 0, 0.03);
+	bbeta ~ student_t(1, 0, 0.03);
 	y ~ bernoulli_logit(linpred);
 }
 
 generated quantities { // y values predicted by the model
-	vector[N2] y_pred = alpha + new_X * beta;
+	vector[N2] y_pred = alpha + new_X * bbeta;
 }

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np, pandas as pd, seaborn as sns, pandas_datareader.data as web
+import numpy as np, pandas as pd, seaborn as sns, yfinance as yf
 from cmdstanpy import CmdStanModel
 from matplotlib import pyplot as plt, ticker as mtick
 
@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt, ticker as mtick
 stock_names = ["GOOG", "AAPL", "AMZN", "TSLA"]
 stock_df = pd.DataFrame()
 for stock in stock_names:
-	stock_data = web.DataReader(stock, 'yahoo', "2015-09-01", "2018-04-27")
+	stock_data = yf.download(stock, start="2015-09-01", end="2018-04-27")
 	stock_df[stock] = stock_data["Open"]
 stock_df.index = stock_data.index
 stock_returns = stock_df.pct_change()[1:]
@@ -32,9 +32,9 @@ plt.ylabel("Return of $1 on first date")
 plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter(xmax = 1))
 
 meltt = stock_returns.melt(var_name = "column")
-sns.displot(meltt, x = 'value', hue = 'column', bins = "sqrt", kde = True)
-g = sns.FacetGrid(meltt, col = 'column', col_wrap = 2)
-g.map(sns.histplot, 'value', bins = "sqrt", kde = True)
+sns.displot(meltt, x = "value", hue = "column", bins = "sqrt", kde = True)
+g = sns.FacetGrid(meltt, col = "column", col_wrap = 2)
+g.map(sns.histplot, "value", bins = "sqrt", kde = True)
 
 #%% model
 
@@ -153,7 +153,7 @@ L_repar = np.linalg.cholesky(np.diag([.04, .03, .02, .01]))
 f = lambda a: L_repar @ a @ a.T @ L_repar.T
 posterior_repar["covs"] = np.array([f(a) for a in posterior_repar["A"]])
 
-colors = ['#5DA5DA', '#F15854', '#B276B2', '#60BD68']
+colors = ["#5DA5DA", "#F15854", "#B276B2", "#60BD68"]
 fig = plt.figure(figsize = (16, 9))
 ax1 = fig.add_subplot(121)
 ax2 = fig.add_subplot(122)

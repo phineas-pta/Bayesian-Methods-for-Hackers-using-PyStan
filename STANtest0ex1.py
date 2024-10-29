@@ -6,11 +6,12 @@ from cmdstanpy import CmdStanModel
 
 #%% data
 
-# src: https://docs.pymc.io/en/v3/pymc-examples/examples/generalized_linear_models/GLM-robust-with-outlier-detection.html
+# src: https://www.pymc.io/projects/examples/en/latest/generalized_linear_models/GLM-robust-with-outlier-detection.html
+# src: https://github.com/astroML/astroML/blob/main/astroML/datasets/hogg2010test.py
 dfhogg = pd.DataFrame(dict(
 	x       = [ 201, 244,  47,  287,  203,  58,  210,  202,  198,  158, 165,  201,  157, 131, 166,  160, 186, 125, 218,   146],
 	y       = [ 592, 401, 583,  402,  495, 173,  479,  504,  510,  416, 393,  442,  317, 311, 400,  337, 423, 334, 533,   344],
-	sigma_x = [   9,   4,  11,    7,    5,   9,    4,    4,   11,    7,   5,    5,    5,   6,   6,    5,   9,   8,   6,    5.],
+	sigma_x = [   9,   4,  11,    7,    5,   9,    4,    4,   11,    7,   5,    5,    5,   6,   6,    5,   9,   8,   6,     5],
 	sigma_y = [  61,  25,  38,   15,   21,  15,   27,   14,   30,   16,  14,   25,   52,  16,  34,   31,  42,  26,  16,    22],
 	rho_xy  = [-.84, .31, .64, -.27, -.33, .67, -.02, -.05, -.84, -.69,  .3, -.46, -.03,  .5, .73, -.52,  .9,  .4, -.78, -.56]
 ), dtype = "float32")
@@ -21,13 +22,6 @@ dfhogg.plot.scatter(x = "x", y = "y", xerr = "sigma_x", yerr = "sigma_y", c = "b
 plt.scatter(dfhogg["x"].values, dfhogg["y"].values)
 ax = plt.gca()
 for i in range(len(dfhogg)):
-	# ax.add_patch(Ellipse( # the angle doesn't seem right
-	# 	(dfhogg.iloc[i,0], dfhogg.iloc[i,1]), # (x, y)
-	# 	width = 2 * dfhogg.iloc[i,2], # 2 * sigma_x
-	# 	height = 2 * dfhogg.iloc[i,3] * 2, # 2 * sigma_y
-	# 	angle = -45 * dfhogg.iloc[i,4], # -45° * rho_xy
-	# 	edgecolor = "b", facecolor = "none"
-	# ))
 	x = dfhogg.iloc[i,0]
 	y = dfhogg.iloc[i,1]
 	sigma_x = dfhogg.iloc[i,2]
@@ -37,10 +31,10 @@ for i in range(len(dfhogg)):
 	cov_mat = np.array([[sigma_x**2, cov], [cov, sigma_y**2]])
 	evals, evecs = scipy.linalg.eigh(cov_mat, eigvals = (0,0)) # eigenvalue, eigenvector
 	angle = np.degrees(np.arctan2(evecs[1][0], evecs[0][0])) # article by Vincent Spruyt
-	ellipse = Ellipse((x,y), width=2*sigma_x, height=2*sigma_y, angle=angle, edgecolor='b', facecolor='none')
+	ellipse = Ellipse((x,y), width=2*sigma_x, height=2*sigma_y, angle=angle, edgecolor="b", facecolor="none")
 	ax.add_patch(ellipse)
 
-X, Y, sigmaY = dfhogg['x'].values, dfhogg['y'].values, dfhogg['sigma_y'].values
+X, Y, sigmaY = dfhogg["x"].values, dfhogg["y"].values, dfhogg["sigma_y"].values
 model_data_dict = {"N": len(dfhogg), "X": X, "Y": Y, "sigmaY": sigmaY}
 model_data_stan = """
 	data {
@@ -57,7 +51,7 @@ model_trans_params_stan = """
 """
 var_name = ["b0", "b1"]
 
-#%% models
+#%% models to deal with outliers
 
 # Simple Linear Model with no Outlier Correction
 modelfile_ols = "mdl_ols.stan"
@@ -93,7 +87,7 @@ gd = sns.jointplot(
 	marginal_kws = {"kde": True, "kde_kws": {"cut": 1}},
 )
 gd.plot_joint(sns.kdeplot, zorder = 2, n_levels = 10, cmap = "gray_r")
-gd.fig.suptitle("Posterior joint distribution (OLS)", y = 1.02)
+gd.figure.suptitle("Posterior joint distribution (OLS)", y = 1.02)
 
 # Simple Linear Model with Robust Student-T Likelihood: outliers to have a smaller influence in the likelihood estimation
 modelfile_studentt = "mdl_studentt.stan"
@@ -194,9 +188,9 @@ for var in var_name:
 		], 40000) # nb of data pts: 4chains × 50000 iter ÷ 5 thin
 	})
 	g = sns.displot(data, x = "y", hue = "model", bins = "sqrt", kde = True, palette = ["r", "g", "m"])
-	g.fig.suptitle(f"Posterior distribution: {var}")
-	g.fig.set_figwidth(8)
-	g.fig.set_figheight(6)
+	g.figure.suptitle(f"Posterior distribution: {var}")
+	g.figure.set_figwidth(8)
+	g.figure.set_figheight(6)
 
 #%% declare outliers
 
@@ -224,17 +218,20 @@ dfhogg["classed_as_outlier"] = p_assign_1 >= .95
 
 #%% remove outliers + full model with all variances
 
+# this section not exist in PyMC docs, refer to original paper
+
 no_outliers = dfhogg[~dfhogg.classed_as_outlier]
 
 mdl_full_data = dict(
 	N = len(no_outliers),
-	X = no_outliers['x'].values,
-	Y = no_outliers['y'].values,
-	sigmaX = no_outliers['sigma_x'].values,
-	sigmaY = no_outliers['sigma_y'].values,
-	rhoXY = no_outliers['rho_xy'].values
+	X = no_outliers["x"].values,
+	Y = no_outliers["y"].values,
+	sigmaX = no_outliers["sigma_x"].values,
+	sigmaY = no_outliers["sigma_y"].values,
+	rhoXY = no_outliers["rho_xy"].values
 )
 
+# linear model with gaussian uncertainties
 modelfile_full = "mdl_full.stan"
 with open(modelfile_full, "w") as file: file.write("""
 	data {
@@ -294,6 +291,7 @@ plt.legend(loc = "lower right")
 
 #%% full model with intrinsic scatter
 
+# linear model with arbitrary two-dimensional uncertainties
 modelfile_full_intrinsic = "mdl_full_intrinsic.stan"
 with open(modelfile_full_intrinsic, "w") as file: file.write("""
 	data {

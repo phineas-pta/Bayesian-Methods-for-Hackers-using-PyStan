@@ -9,11 +9,11 @@ raw_data = pd.read_csv("data/challenger_data.csv")
 raw_data["Date"] = pd.to_datetime(raw_data["Date"], infer_datetime_format=True)
 
 # pop last row -> drop missing -> change dtype
-challenger = raw_data.drop(raw_data.tail(1).index).dropna().astype({"Damage Incident": 'int32'})
+challenger = raw_data.drop(raw_data.tail(1).index).dropna().astype({"Damage Incident": "int32"})
 challenger.plot.scatter(x = "Temperature", y = "Damage Incident")
 
-challenger.plot.scatter(x = "Date", y = "Temperature", c = "Damage Incident", cmap = plt.cm.get_cmap('RdBu', 2))
-plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+challenger.plot.scatter(x = "Date", y = "Temperature", c = "Damage Incident", cmap = plt.cm.get_cmap("RdBu", 2))
+plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
 plt.gca().xaxis.set_major_locator(mdates.YearLocator())
 plt.gcf().autofmt_xdate()
 
@@ -71,7 +71,7 @@ unconstraining_bijectors = [tfb.Scale(100.), tfb.Identity()]
 samples, sampler_stat = run_mcmc(init_state, unconstraining_bijectors)
 
 #%% using the pymc3 naming convention, with log_likelihood instead of lp so that ArviZ can compute loo and waic
-sample_stats_name = ['log_likelihood', 'tree_size', 'diverging', 'energy', 'mean_tree_accept']
+sample_stats_name = ["log_likelihood", "tree_size", "diverging", "energy", "mean_tree_accept"]
 
 sample_stats = {k: v.numpy().T for k, v in zip(sample_stats_name, sampler_stat)}
 posterior = {k: np.swapaxes(v.numpy(), 1, 0) for k, v in zip(var_name, samples)}

@@ -9,25 +9,25 @@ tf.config.optimizer.set_jit(True)
 #%% data
 
 srrs2 = pd.read_csv("data/srrs2.dat")
-srrs2['fips'] = srrs2['stfips']*1000 + srrs2['cntyfips']
+srrs2["fips"] = srrs2["stfips"]*1000 + srrs2["cntyfips"]
 
 cty = pd.read_csv("data/cty.dat")
-cty['fips'] = cty['stfips']*1000 + cty['ctfips']
+cty["fips"] = cty["stfips"]*1000 + cty["ctfips"]
 
-srrs_mn = srrs2[srrs2.state=='MN'].merge(cty[cty.st=='MN'][['fips', 'Uppm']], on='fips').drop_duplicates(subset='idnum')
-srrs_mn['county'] = srrs_mn['county'].map(str.strip) # remove blank spaces
+srrs_mn = srrs2[srrs2.state=="MN"].merge(cty[cty.st=="MN"][["fips", "Uppm"]], on="fips").drop_duplicates(subset="idnum")
+srrs_mn["county"] = srrs_mn["county"].map(str.strip) # remove blank spaces
 
-mn_counties = srrs_mn['county'].unique()
+mn_counties = srrs_mn["county"].unique()
 county_lookup = dict(zip(mn_counties, range(len(mn_counties))))
-radon = srrs_mn['activity'].values
+radon = srrs_mn["activity"].values
 
-county = srrs_mn['county'].replace(county_lookup).values
+county = srrs_mn["county"].replace(county_lookup).values
 N = len(srrs_mn)
 log_radon = np.log(radon + .1) # +0.1 to make log scale
-floor_measure = srrs_mn['floor'].values.astype('float')
+floor_measure = srrs_mn["floor"].values.astype("float")
 counties = len(mn_counties)
-u = np.log(srrs_mn['Uppm'].values)
-xbar = srrs_mn.groupby('county')['floor'].mean().rename(county_lookup).values
+u = np.log(srrs_mn["Uppm"].values)
+xbar = srrs_mn.groupby("county")["floor"].mean().rename(county_lookup).values
 x_mean = xbar[county]
 county += 1 # Stan is 1-based index
 
@@ -39,11 +39,11 @@ sns.displot(radon + .1, bins = "sqrt", kde = True, log_scale = True)
 
 @tfd.JointDistributionCoroutineAutoBatched
 def model():
-	uranium_weight = yield tfd.Normal(loc=0., scale=1., name='uranium_weight')
-	county_floor_weight = yield tfd.Normal(loc=0., scale=1., name='county_floor_weight')
+	uranium_weight = yield tfd.Normal(loc=0., scale=1., name="uranium_weight")
+	county_floor_weight = yield tfd.Normal(loc=0., scale=1., name="county_floor_weight")
 	county_effect = yield tfd.Sample(
 		tfd.Normal(loc=0., scale=county_effect_scale),
-		sample_shape=[counties], name='county_effect'
+		sample_shape=[counties], name="county_effect"
 	)
 	yield tfd.Normal(
 		loc=log_uranium * uranium_weight +\
@@ -52,5 +52,5 @@ def model():
 		    tf.gather(county_effect, county, axis=-1) +\
 		    bias,
 		scale=log_radon_scale[..., tf.newaxis],
-		name='log_radon'
+		name="log_radon"
 	)

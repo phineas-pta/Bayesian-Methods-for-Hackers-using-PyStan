@@ -26,8 +26,8 @@ n_yes = tf.cast(tf.reduce_sum(observed_yes), tf.float32)
 def prob_flip_heads():
 	return tfd.Binomial(total_count = N, probs = 0.5).sample() / N
 def prob_yes(prob_cheat):
-	prob_heads_1st = prob_flip_heads() # unknown so we'll have to simulate
-	prob_heads_2nd = prob_flip_heads() # unknown so we'll have to simulate
+	prob_heads_1st = prob_flip_heads() # unknown so we’ll have to simulate
+	prob_heads_2nd = prob_flip_heads() # unknown so we’ll have to simulate
 	return prob_heads_1st * prob_cheat + (1. - prob_heads_1st) * prob_heads_2nd
 
 @tfd.JointDistributionCoroutineAutoBatched

@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 
+# src:
+# - http://www.kaggle.com/c/DarkWorlds
+# - http://www.timsalimans.com/observing-dark-worlds
+
 import numpy as np, pandas as pd, arviz as az, matplotlib.pyplot as plt
 from cmdstanpy import CmdStanModel
 from matplotlib.patches import Ellipse
@@ -12,7 +16,7 @@ data_sky[["e1", "e2"]].std()
 # plot sky + halo
 def draw_sky(galaxies: pd.DataFrame, SkyID: int):
 	fig = plt.figure(figsize = (9, 9))
-	ax = fig.add_subplot(111, aspect = 'equal')
+	ax = fig.add_subplot(111, aspect = "equal")
 
 	for row in galaxies.itertuples(index = False):
 		d = np.sqrt(row.e1 ** 2 + row.e2 ** 2)

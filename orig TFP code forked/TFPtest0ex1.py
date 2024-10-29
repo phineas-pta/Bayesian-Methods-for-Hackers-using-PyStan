@@ -16,10 +16,10 @@ dfhogg = pd.DataFrame(dict(
 ), dtype = "float32")
 dfhogg.plot.scatter(x = "x", y = "y", xerr = "sigma_x", yerr = "sigma_y", c = "b")
 
-X_np = dfhogg['x'].values
+X_np = dfhogg["x"].values
 xrange = np.array([X_np.min() - 1, X_np.max() + 1])
-sigma_y_np = dfhogg['sigma_y'].values
-Y_np = dfhogg['y'].values
+sigma_y_np = dfhogg["sigma_y"].values
+Y_np = dfhogg["y"].values
 
 #%% OLS model
 # not batch friendly (to run 1 chain only, not multiple chains)
@@ -50,7 +50,7 @@ _mdl_ols_batch = tfd.JointDistributionNamed(dict( # ATTENTION: a dict
 # auto batched version
 mdl_ols_batch = tfd.JointDistributionNamedAutoBatched(dict( # ATTENTION: a dict
 	likelihood = lambda b0, b1: tfd.Normal(loc = b0 + b1*X_np, scale = sigma_y_np), # implicit operations in background
-	b0 = tfd.Normal(loc = 0., scale = 1.), # doesn't need to be in order
+	b0 = tfd.Normal(loc = 0., scale = 1.), # doesn’t need to be in order
 	b1 = tfd.Normal(loc = 0., scale = 1.),
 ))
 
@@ -80,7 +80,7 @@ plt.plot(xrange, b0_est_MLE + b1_est_MLE * xrange, c = "r", label = "OLS")
 plt.legend(loc = "lower right")
 
 #%% McMC
-var_name = ['b0', 'b1']
+var_name = ["b0", "b1"]
 
 # a helper function in McMC chain
 def trace_fn(current_state, kernel_results):
@@ -122,7 +122,7 @@ unconstraining_bijectors = [tfb.Identity()]*len(var_name) # map contrained param
 samples, sampler_stat = run_mcmc(init_state, unconstraining_bijectors)
 
 #%% using the pymc3 naming convention, with log_likelihood instead of lp so that ArviZ can compute loo and waic
-sample_stats_name = ['log_likelihood', 'tree_size', 'diverging', 'energy', 'mean_tree_accept']
+sample_stats_name = ["log_likelihood", "tree_size", "diverging", "energy", "mean_tree_accept"]
 
 sample_stats = {k: v.numpy().T for k, v in zip(sample_stats_name, sampler_stat)}
 posterior = {k: np.swapaxes(v.numpy(), 1, 0) for k, v in zip(var_name, samples)}

@@ -6,25 +6,25 @@ from cmdstanpy import CmdStanModel
 #%% data
 
 srrs2 = pd.read_csv("data/srrs2.dat")
-srrs2['fips'] = srrs2['stfips']*1000 + srrs2['cntyfips']
+srrs2["fips"] = srrs2["stfips"]*1000 + srrs2["cntyfips"]
 
 cty = pd.read_csv("data/cty.dat")
-cty['fips'] = cty['stfips']*1000 + cty['ctfips']
+cty["fips"] = cty["stfips"]*1000 + cty["ctfips"]
 
-srrs_mn = srrs2[srrs2.state=='MN'].merge(cty[cty.st=='MN'][['fips', 'Uppm']], on='fips').drop_duplicates(subset='idnum')
-srrs_mn['county'] = srrs_mn['county'].map(str.strip) # remove blank spaces
+srrs_mn = srrs2[srrs2.state=="MN"].merge(cty[cty.st=="MN"][["fips", "Uppm"]], on="fips").drop_duplicates(subset="idnum")
+srrs_mn["county"] = srrs_mn["county"].map(str.strip) # remove blank spaces
 
-mn_counties = srrs_mn['county'].unique()
+mn_counties = srrs_mn["county"].unique()
 county_lookup = dict(zip(mn_counties, range(len(mn_counties))))
-radon = srrs_mn['activity'].values
+radon = srrs_mn["activity"].values
 
-county = srrs_mn['county'].replace(county_lookup).values
+county = srrs_mn["county"].replace(county_lookup).values
 N = len(srrs_mn)
 log_radon = np.log(radon + .1) # +0.1 to make log scale
-floor_measure = srrs_mn['floor'].values.astype('float')
+floor_measure = srrs_mn["floor"].values.astype("float")
 counties = len(mn_counties)
-u = np.log(srrs_mn['Uppm'].values)
-xbar = srrs_mn.groupby('county')['floor'].mean().rename(county_lookup).values
+u = np.log(srrs_mn["Uppm"].values)
+xbar = srrs_mn.groupby("county")["floor"].mean().rename(county_lookup).values
 x_mean = xbar[county]
 county += 1 # Stan is 1-based index
 
@@ -58,7 +58,7 @@ with open(modelfile_pooled, "w") as file: file.write("""
 """)
 sm_pooled = CmdStanModel(stan_file = modelfile_pooled)
 fit_pooled = sm_pooled.sample(
-	data = {'N': N, 'x': floor_measure, 'y': log_radon},
+	data = {"N": N, "x": floor_measure, "y": log_radon},
 	show_progress = True, chains = 4, iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
 fit_pooled.summary() # pandas DataFrame
@@ -91,7 +91,7 @@ with open(modelfile_unpooled, "w") as file: file.write("""
 """)
 sm_unpooled = CmdStanModel(stan_file = modelfile_unpooled)
 fit_unpooled = sm_unpooled.sample(
-	data = {'N': N, 'J': counties, 'county': county, 'x': floor_measure, 'y': log_radon},
+	data = {"N": N, "J": counties, "county": county, "x": floor_measure, "y": log_radon},
 	show_progress = True, chains = 4, iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
 fit_unpooled.summary() # pandas DataFrame
@@ -126,7 +126,7 @@ with open(modelfile_partial_pooling, "w") as file: file.write("""
 """)
 sm_partial_pooling = CmdStanModel(stan_file = modelfile_partial_pooling)
 fit_partial_pooling = sm_partial_pooling.sample(
-	data = {'N': N, 'J': counties, 'county': county, 'y': log_radon},
+	data = {"N": N, "J": counties, "county": county, "y": log_radon},
 	show_progress = True, chains = 4, iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
 fit_partial_pooling.summary() # pandas DataFrame
@@ -165,7 +165,7 @@ with open(modelfile_varying_intercept, "w") as file: file.write("""
 """)
 sm_varying_intercept = CmdStanModel(stan_file = modelfile_varying_intercept)
 fit_varying_intercept = sm_varying_intercept.sample(
-	data = {'N': N, 'J': counties, 'county': county, 'x': floor_measure, 'y': log_radon},
+	data = {"N": N, "J": counties, "county": county, "x": floor_measure, "y": log_radon},
 	show_progress = True, chains = 4, iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
 fit_varying_intercept.summary() # pandas DataFrame
@@ -204,7 +204,7 @@ with open(modelfile_varying_slope, "w") as file: file.write("""
 """)
 sm_varying_slope = CmdStanModel(stan_file = modelfile_varying_slope)
 fit_varying_slope = sm_varying_slope.sampling(
-	data = {'N': N, 'J': counties, 'county': county, 'x': floor_measure, 'y': log_radon},
+	data = {"N": N, "J": counties, "county": county, "x": floor_measure, "y": log_radon},
 	show_progress = True, chains = 4, iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
 fit_varying_slope.summary() # pandas DataFrame
@@ -244,7 +244,7 @@ with open(modelfile_varying_intercept_slope, "w") as file: file.write("""
 """)
 sm_varying_intercept_slope = CmdStanModel(stan_file = modelfile_varying_intercept_slope)
 fit_varying_intercept_slope = sm_varying_intercept_slope.sample(
-	data = {'N': N, 'J': counties, 'county': county, 'x': floor_measure, 'y': log_radon},
+	data = {"N": N, "J": counties, "county": county, "x": floor_measure, "y": log_radon},
 	show_progress = True, chains = 4, iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
 fit_varying_intercept_slope.summary() # pandas DataFrame
@@ -283,7 +283,7 @@ with open(modelfile_hierarchical_intercept, "w") as file: file.write("""
 """)
 sm_hierarchical_intercept = CmdStanModel(stan_file = modelfile_hierarchical_intercept)
 fit_hierarchical_intercept = sm_hierarchical_intercept.sample(
-	data = {'N': N, 'J': counties, 'county': county, 'u': u, 'x': floor_measure, 'y': log_radon},
+	data = {"N": N, "J": counties, "county": county, "u": u, "x": floor_measure, "y": log_radon},
 	show_progress = True, chains = 4, iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
 fit_hierarchical_intercept.summary() # pandas DataFrame
@@ -322,13 +322,13 @@ with open(modelfile_contextual_effect, "w") as file: file.write("""
 """)
 sm_contextual_effect = CmdStanModel(stan_file = modelfile_contextual_effect)
 fit_contextual_effect = sm_contextual_effect.sample(
-	data = {'N': N, 'J': counties, 'county': county, 'u': u, 'x_mean': x_mean, 'x': floor_measure, 'y': log_radon},
+	data = {"N": N, "J": counties, "county": county, "u": u, "x_mean": x_mean, "x": floor_measure, "y": log_radon},
 	show_progress = True, chains = 4, iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
 fit_contextual_effect.summary() # pandas DataFrame
 
 # prediction
-stl = 'ST LOUIS'
+stl = "ST LOUIS"
 i_stl = county_lookup[stl]
 modelfile_contextual_pred = "mdl_contextual_pred.stan"
 with open(modelfile_contextual_pred, "w") as file: file.write("""
@@ -373,9 +373,9 @@ with open(modelfile_contextual_pred, "w") as file: file.write("""
 sm_contextual_pred = CmdStanModel(stan_file = modelfile_contextual_pred)
 fit_contextual_pred = sm_contextual_pred.sample(
 	data = {
-		'N': N, 'J': counties, 'county': county, 'u': u, 'x_mean': x_mean, 'x': floor_measure, 'y': log_radon,
-		'stl': i_stl, 'u_stl': np.unique(u[srrs_mn.county == stl])[0], 'xbar_stl': xbar[i_stl]
+		"N": N, "J": counties, "county": county, "u": u, "x_mean": x_mean, "x": floor_measure, "y": log_radon,
+		"stl": i_stl, "u_stl": np.unique(u[srrs_mn.county == stl])[0], "xbar_stl": xbar[i_stl]
 	}, show_progress = True, chains = 4, iter_sampling = 50000, iter_warmup = 10000, thin = 5
 )
-sample_contextual_pred = np.exp(fit_contextual_pred.stan_variable('y_stl'))
+sample_contextual_pred = np.exp(fit_contextual_pred.stan_variable("y_stl"))
 sns.displot(sample_contextual_pred, bins = "sqrt", kde = True)

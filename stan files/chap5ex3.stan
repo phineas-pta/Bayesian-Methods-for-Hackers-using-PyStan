@@ -1,18 +1,18 @@
 /*
-cd /opt/cmdstan && make -j 6 ~/coder/chap5ex3 && cd ~/coder
+src:
+- http://www.kaggle.com/c/DarkWorlds
+- http://www.timsalimans.com/observing-dark-worlds
 
-./chap5ex3 optimize data file=chap5ex3.data.json
+The dataset is actually 300 separate files, each representing a sky.
+In each file, or sky, are between 300 and 720 galaxies.
+Each galaxy has an x and y position associated with it, ranging from 0 to 4200, and measures of ellipticity: e1 and e2
 
-./chap5ex3 sample
-	num_chains=4 num_samples=50000 num_warmup=10000 thin=5
-	init=chap5ex3.init.json
-	data file=chap5ex3.data.json
-	output file=chap5ex3_fit.csv diagnostic_file=chap5ex3_dia.csv
-	refresh=0 num_threads=4
+Each sky has 1, 2 or 3 dark matter halos in it.
+prior distribution of halo positions: x_i ~ Unif(0, 4200) and y_i ~ Unif(0, 4200) for i in 1,2,3
 
-/opt/cmdstan/bin/stansummary chap5ex3_fit_*.csv
+most skies had one large halo and other halos, if present, were much smaller
+mass loarge halo ~ log Unif(40, 180)
 
-./chap5ex3 variational data file=chap5ex3.data.json
 */
 
 functions {
@@ -51,7 +51,7 @@ transformed data {
 	row_vector[N_halos] cste_f_dist = [240, 70, 70]; // one large & 2 smaller
 }
 
-parameters { // discrete parameters impossible
+parameters {
 	real<lower=0> mass_large; // large halo mass, log uniform does not work ?
 	array[N_halos] row_vector<lower=0, upper=4200>[2] halo_pos; // halo position (x, y)
 }

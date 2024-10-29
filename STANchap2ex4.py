@@ -7,9 +7,9 @@ raw_data = pd.read_csv("data/challenger_data.csv")
 raw_data["Date"] = pd.to_datetime(raw_data["Date"], infer_datetime_format=True)
 
 # pop last row -> drop missing -> change dtype
-challenger = raw_data.drop(raw_data.tail(1).index).dropna().astype({"Damage Incident": 'int32'})
+challenger = raw_data.drop(raw_data.tail(1).index).dropna().astype({"Damage Incident": "int32"})
 
-mdl_data = {'N': len(challenger), 'dam': challenger["Damage Incident"].sum(), 'temp': challenger["Temperature"].values}
+mdl_data = {"N": len(challenger), "dam": challenger["Damage Incident"].sum(), "temp": challenger["Temperature"].values}
 
 modelfile = "challenger.stan"
 with open(modelfile, "w") as file: file.write("""

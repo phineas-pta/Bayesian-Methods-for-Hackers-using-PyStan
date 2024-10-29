@@ -9,7 +9,7 @@ tf.config.optimizer.set_jit(True)
 baseball = pd.read_csv("data/EfronMorrisBB.txt", sep = "\t")
 X = tf.cast(baseball["At-Bats"].values, "float32")
 Y = tf.cast(baseball["Hits"].values, "float32")
-var_name = ['phi', 'kappa_log', 'thetas']
+var_name = ["phi", "kappa_log", "thetas"]
 
 @tfd.JointDistributionCoroutineAutoBatched
 def mdl_baseball():
@@ -62,7 +62,7 @@ unconstraining_bijectors = [tfb.Sigmoid(), tfb.Exp(), tfb.Sigmoid(),]
 samples, sampler_stat = run_mcmc(init_state, unconstraining_bijectors)
 
 #%% using the pymc3 naming convention, with log_likelihood instead of lp so that ArviZ can compute loo and waic
-sample_stats_name = ['log_likelihood', 'tree_size', 'diverging', 'energy', 'mean_tree_accept']
+sample_stats_name = ["log_likelihood", "tree_size", "diverging", "energy", "mean_tree_accept"]
 
 sample_stats = {k: v.numpy().T for k, v in zip(sample_stats_name, sampler_stat)}
 posterior = {k:np.swapaxes(v.numpy(), 1, 0) for k, v in zip(var_name, samples)}

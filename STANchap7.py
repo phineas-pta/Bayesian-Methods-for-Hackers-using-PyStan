@@ -5,7 +5,7 @@ from cmdstanpy import CmdStanModel
 
 #%% load data
 
-data = pd.read_csv("data/overfitting.csv", index_col = 'case_id')
+data = pd.read_csv("data/overfitting.csv", index_col = "case_id")
 data.columns
 data.info()
 
@@ -30,12 +30,12 @@ pca.column_correlations(training_data).plot.scatter(x = 0, y = 1) # weird column
 #%% Roshan Sharma model
 
 mdl_data = { # problem with JSON dump => cast to python native type
-	'N': ix_training.sum().tolist(),
-	'N2': ix_testing.sum().tolist(),
-	'K': feature_names.sum().tolist(),
-	'y': training_labels.values.tolist(),
-	'X': training_data.values.tolist(),
-	'new_X': testing_data.values.tolist(),
+	"N": ix_training.sum().tolist(),
+	"N2": ix_testing.sum().tolist(),
+	"K": feature_names.sum().tolist(),
+	"y": training_labels.values.tolist(),
+	"X": training_data.values.tolist(),
+	"new_X": testing_data.values.tolist(),
 }
 
 modelfile = "OverfittingRoshanSharma.stan"
@@ -95,14 +95,14 @@ fit.draws().shape # iterations, chains, parameters
 fit.summary().loc[var_name_array] # pandas DataFrame
 print(fit.diagnose())
 
-posterior = {k: fit_modif.stan_variable(k) for k in var_name_combi}
+# posterior = {k: fit_modif.stan_variable(k) for k in var_name_combi}
 
 az_trace = az.from_cmdstanpy(fit)
-az.summary(az_trace).loc[var_name] # pandas DataFrame
+az.summary(az_trace).loc[var_name_combi] # pandas DataFrame
 az.plot_trace(az_trace, var_names = ["alpha"])
 az.plot_forest(az_trace, var_names = ["beta"])
 
-sample_pred = fit.stan_variable('y_pred')
+sample_pred = fit.stan_variable("y_pred")
 
 # Tim Salimans model: DOES NOT WORK yet
 # need to figure out how to marginalize all discrete params

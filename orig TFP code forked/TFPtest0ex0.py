@@ -7,7 +7,7 @@ N = 100
 X = np.random.randn(N, 1)
 beta, c, eps = 0.4, 1.5, 0.3
 y = X*beta + c + np.random.randn(N, 1)*eps
-plt.plot(X, y, '+')
+plt.plot(X, y, "+")
 
 def forward_random(n_replica):
 	# prior sample for coefficient
@@ -47,8 +47,8 @@ log_prob_grid = np.reshape(
 	backward_logprob(*[tf.cast(x, tf.float32) for x in [beta_grid.flatten(), c_grid.flatten(), np.ones(N**2)*eps_conditional]]),
 	[N, N]
 )
-plt.imshow(log_prob_grid, origin='lower', cmap='viridis', extent=[beta_min, beta_max, c_min, c_max], aspect='auto')
+plt.imshow(log_prob_grid, origin="lower", cmap="viridis", extent=[beta_min, beta_max, c_min, c_max], aspect="auto")
 plt.colorbar(label = "log prob")
 plt.scatter(beta, c)
-plt.xlabel('Coefficient')
-plt.ylabel('Intercept')
+plt.xlabel("Coefficient")
+plt.ylabel("Intercept")
