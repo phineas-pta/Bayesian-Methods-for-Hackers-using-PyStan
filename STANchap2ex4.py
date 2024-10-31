@@ -21,20 +21,20 @@ with open(modelfile, "w") as file: file.write("""
 
 	parameters { // discrete parameters impossible
 		real alpha;
-		real beta;
+		real bbeta; // `beta` is built-in distrib fx
 	}
 
 	transformed parameters {
-		vector[N] prob = 1 ./ (1 + exp(beta * temp + alpha)); // element-wise
+		vector[N] prob = 1 ./ (1 + exp(bbeta * temp + alpha)); // element-wise
 	}
 
 	model {
 		alpha ~ normal(0, 1000);
-		beta ~ normal(0, 1000);
+		bbeta ~ normal(0, 1000);
 		dam ~ binomial(N, prob);
 	}
 """)
-var_name = ["alpha", "beta"]
+var_name = ["alpha", "bbeta"]
 
 sm = CmdStanModel(stan_file = modelfile)
 

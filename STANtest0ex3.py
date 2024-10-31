@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+# src: https://www.pymc.io/projects/examples/en/latest/generalized_linear_models/multilevel_modeling.html
+
 import numpy as np, pandas as pd, arviz as az, matplotlib.pyplot as plt, seaborn as sns
 from cmdstanpy import CmdStanModel
 
@@ -294,7 +296,7 @@ with open(modelfile_contextual_effect, "w") as file: file.write("""
 	data {
 		int<lower=0> J;
 		int<lower=0> N;
-		array[N] int<lower=1, upper=J>;
+		array[N] int<lower=1, upper=J> county;
 		vector[N] u;
 		vector[N] x;
 		vector[N] x_mean;

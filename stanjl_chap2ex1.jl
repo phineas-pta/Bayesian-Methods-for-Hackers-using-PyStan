@@ -20,7 +20,7 @@ mdl_str = "
 
 	transformed data {
 		real alpha = 8.;
-		real beta = .3;
+		real bbeta = .3; // `beta` is built-in distrib fx
 		real log_unif = -log(N);
 	}
 
@@ -43,8 +43,8 @@ mdl_str = "
 	}
 
 	model {
-		lambda1 ~ gamma(alpha, beta);
-		lambda2 ~ gamma(alpha, beta);
+		lambda1 ~ gamma(alpha, bbeta);
+		lambda2 ~ gamma(alpha, bbeta);
 		target += log_sum_exp(lp);
 	}
 

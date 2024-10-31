@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
+# src:
+# - https://github.com/astroML/astroML/blob/main/astroML/datasets/hogg2010test.py
+# - https://www.pymc.io/projects/examples/en/latest/generalized_linear_models/GLM-robust-with-outlier-detection.html
+
 import numpy as np, pandas as pd, matplotlib.pyplot as plt, seaborn as sns, arviz as az, scipy
 from matplotlib.patches import Ellipse
 from cmdstanpy import CmdStanModel
 
 #%% data
 
-# src: https://www.pymc.io/projects/examples/en/latest/generalized_linear_models/GLM-robust-with-outlier-detection.html
-# src: https://github.com/astroML/astroML/blob/main/astroML/datasets/hogg2010test.py
 dfhogg = pd.DataFrame(dict(
 	x       = [ 201, 244,  47,  287,  203,  58,  210,  202,  198,  158, 165,  201,  157, 131, 166,  160, 186, 125, 218,   146],
 	y       = [ 592, 401, 583,  402,  495, 173,  479,  504,  510,  416, 393,  442,  317, 311, 400,  337, 423, 334, 533,   344],

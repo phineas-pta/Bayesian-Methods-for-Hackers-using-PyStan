@@ -51,25 +51,25 @@ with open(modelfile, "w") as file: file.write("""
 
 	parameters { // regression parameters
 		real alpha;
-		vector[K] beta;
+		vector[K] bbeta; // `beta` is built-in distrib fx
 	}
 
 	transformed parameters {
-		vector[N] linpred = alpha + X * beta;
+		vector[N] linpred = alpha + X * bbeta;
 	}
 
 	model {
 		alpha ~ cauchy(0, 10); // prior for the intercept following Gelman 2008
-		beta ~ student_t(1, 0, 0.03);
+		bbeta ~ student_t(1, 0, 0.03);
 		y ~ bernoulli_logit(linpred);
 	}
 
 	generated quantities { // y values predicted by the model
-		vector[N2] y_pred = alpha + new_X * beta;
+		vector[N2] y_pred = alpha + new_X * bbeta;
 	}
 """)
-var_name_array = ["alpha"] + [f"beta[{i+1}]" for i in range(mdl_data["K"])]
-var_name_combi = ["alpha", "beta"]
+var_name_array = ["alpha"] + [f"bbeta[{i+1}]" for i in range(mdl_data["K"])]
+var_name_combi = ["alpha", "bbeta"]
 
 sm = CmdStanModel(stan_file = modelfile)
 
@@ -100,7 +100,7 @@ print(fit.diagnose())
 az_trace = az.from_cmdstanpy(fit)
 az.summary(az_trace).loc[var_name_combi] # pandas DataFrame
 az.plot_trace(az_trace, var_names = ["alpha"])
-az.plot_forest(az_trace, var_names = ["beta"])
+az.plot_forest(az_trace, var_names = ["bbeta"])
 
 sample_pred = fit.stan_variable("y_pred")
 

@@ -22,7 +22,7 @@ data {
 transformed data {
 	real<lower=0, upper=1> prob_coin = .5;
 	real<lower=0, upper=1> flip1 = binomial_rng(N, prob_coin) * 1. / N; // trick to make int->real
-	real<lower=0, upper=1> flip2 = binomial_rng(N, prob_coin) * 1. / N;;
+	real<lower=0, upper=1> flip2 = binomial_rng(N, prob_coin) * 1. / N;
 }
 
 parameters {

@@ -20,7 +20,7 @@ with open(modelfile, "w") as file: file.write("""
 
 	transformed data {
 		real alpha = 8.;
-		real beta = .3;
+		real bbeta = .3; // `beta` is built-in distrib fx
 	}
 
 	parameters { // discrete parameters impossible
@@ -30,8 +30,8 @@ with open(modelfile, "w") as file: file.write("""
 	}
 
 	model {
-		lambda1 ~ gamma(alpha, beta);
-		lambda2 ~ gamma(alpha, beta);
+		lambda1 ~ gamma(alpha, bbeta);
+		lambda2 ~ gamma(alpha, bbeta);
 		tau ~ uniform(1, N);
 
 		for (i in 1:N) obs[i] ~ poisson(i < tau ? lambda1 : lambda2);
@@ -50,7 +50,7 @@ with open(modelfile_modif, "w") as file: file.write("""
 
 	transformed data {
 		real alpha = 8.;
-		real beta = .3;
+		real bbeta = .3;
 		real log_unif = -log(N);
 	}
 
@@ -73,8 +73,8 @@ with open(modelfile_modif, "w") as file: file.write("""
 	}
 
 	model {
-		lambda1 ~ gamma(alpha, beta);
-		lambda2 ~ gamma(alpha, beta);
+		lambda1 ~ gamma(alpha, bbeta);
+		lambda2 ~ gamma(alpha, bbeta);
 		target += log_sum_exp(lp);
 	}
 

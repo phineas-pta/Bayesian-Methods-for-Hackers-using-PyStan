@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# src: https://www.pymc.io/projects/examples/en/latest/case_studies/hierarchical_partial_pooling.html
+# src:
+# - https://www1.swarthmore.edu/NatSci/peverso1/Sports%20Data/JamesSteinData/Efron-Morris%20Baseball/EfronMorrisBB.txt
+# - https://www.pymc.io/projects/examples/en/latest/case_studies/hierarchical_partial_pooling.html
+# - https://mc-stan.org/users/documentation/case-studies/pool-binary-trials.html
 
 import numpy as np, pandas as pd, arviz as az, matplotlib.pyplot as plt
 from cmdstanpy import CmdStanModel
@@ -25,13 +28,13 @@ with open(modelfile, "w") as file: file.write("""
 	transformed parameters {
 		real<lower=0> kappa = exp(log_kappa);
 		real<lower=0> alpha = kappa * phi;
-		real<lower=0> beta = kappa * (1 - phi);
+		real<lower=0> bbeta = kappa * (1 - phi); // `beta` is built-in distrib fx
 	}
 
 	model {
 		log_kappa ~ exponential(1.5);
 		phi ~ uniform(0, 1);
-		thetas ~ beta(alpha, beta);
+		thetas ~ beta(alpha, bbeta);
 		hits ~ binomial(at_bats, thetas);
 	}
 """)

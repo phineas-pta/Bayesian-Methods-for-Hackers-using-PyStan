@@ -78,7 +78,7 @@ with open(modelfile_repar, "w") as file: file.write("""
 	data { // avoid putting data in matrix except for linear algebra
 		int<lower=0> N;
 		int<lower=0> N_stocks;
-		array[N] row_vector[N_stocks] observations;;
+		array[N] row_vector[N_stocks] observations;
 	}
 
 	transformed data {
@@ -91,7 +91,7 @@ with open(modelfile_repar, "w") as file: file.write("""
 	parameters { // discrete parameters impossible
 		row_vector[N_stocks] locs;
 		vector[N_stocks] c;
-		vector[N_stocks * (N_stocks - 1) %/% 2] z;
+		vector[N_stocks * (N_stocks - 1) / 2] z;
 	}
 
 	transformed parameters {
@@ -100,13 +100,13 @@ with open(modelfile_repar, "w") as file: file.write("""
 			int count = 1;
 			for (j in 1:(N_stocks-1)) {
 				for (i in (j+1):N_stocks) {
-					A[i,j] = z[count];
+					A[i, j] = z[count];
 					count += 1;
 				}
-				for (i in 1:(j-1)) A[i,j] = 0;
-				A[j, N_stocks] = 0;
-				A[j,j] = sqrt(c[j]);
+				for (i in 1:(j-1)) A[i, j] = 0;
+				A[j, j] = sqrt(c[j]);
 			}
+			for (i in 1:(N_stocks-1)) A[i, N_stocks] = 0;
 			A[N_stocks, N_stocks] = sqrt(c[N_stocks]);
 		}
 	}
