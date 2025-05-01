@@ -1,5 +1,14 @@
 # -*- coding: utf-8 -*-
 
+"""
+modelling daily stock return
+stocks: AAPL, GOOG, TSLA, AMZN
+date: 2012/09/01 → 2015/04/27
+
+Suppose Sᵢ is the price of the stock on day i then the daily return on that day is:
+rᵢ = Sᵢ / Sᵢ₋₁ - 1
+"""
+
 import numpy as np, pandas as pd, seaborn as sns, yfinance as yf
 from cmdstanpy import CmdStanModel
 from matplotlib import pyplot as plt, ticker as mtick

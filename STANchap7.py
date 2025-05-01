@@ -1,5 +1,16 @@
 # -*- coding: utf-8 -*-
 
+"""
+src:
+- https://www.kaggle.com/c/overfitting
+- http://timsalimans.com/winning-the-dont-overfit-competition/ (dead link)
+- https://web.archive.org/web/20190718145349/http://timsalimans.com/winning-the-dont-overfit-competition/
+
+In order to achieve this we have created a simulated data set with 200 variables and 20000 cases.
+An ‘equation’ based on this data was created in order to generate a Target to be predicted.
+Given the all 20000 cases, the problem is very easy to solve - but you only get given the Target value of 250 cases - the task is to build a model that gives the best predictions on the remaining 19750 cases.
+"""
+
 import numpy as np, pandas as pd, arviz as az, prince, matplotlib.pyplot as plt, seaborn as sns
 from cmdstanpy import CmdStanModel
 

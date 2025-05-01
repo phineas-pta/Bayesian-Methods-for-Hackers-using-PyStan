@@ -1,8 +1,21 @@
 # -*- coding: utf-8 -*-
 
-# src:
-# - http://www.kaggle.com/c/DarkWorlds
-# - http://www.timsalimans.com/observing-dark-worlds
+"""
+src:
+- http://www.kaggle.com/c/DarkWorlds
+- http://www.timsalimans.com/observing-dark-worlds (dead link)
+- https://web.archive.org/web/20190706180949/http://timsalimans.com/observing-dark-worlds/
+
+The dataset is actually 300 separate files, each representing a sky.
+In each file, or sky, are between 300 and 720 galaxies.
+Each galaxy has an x and y position associated with it, ranging from 0 to 4200, and measures of ellipticity: e1 and e2
+
+Each sky has 1, 2 or 3 dark matter halos in it.
+prior distribution of halo positions: xᵢ ~ Unif(0, 4200) and yᵢ ~ Unif(0, 4200) for i in 1,2,3
+
+most skies had one large halo and other halos, if present, were much smaller
+mass large halo ~ Unif(40, 180) | N.B. log uniform (like in original salimans solution) make MCMC struggle to find initial values
+"""
 
 import numpy as np, pandas as pd, arviz as az, matplotlib.pyplot as plt
 from cmdstanpy import CmdStanModel

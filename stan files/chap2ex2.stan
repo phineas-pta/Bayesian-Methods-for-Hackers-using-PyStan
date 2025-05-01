@@ -1,7 +1,17 @@
 /*
-Assume that there is some true 0 < p_A < 1 probability that users who, upon shown site A, eventually purchase from the site. This is the true effectiveness of site A. Currently, this quantity is unknown to us.
+In the interview process for each student, the student flips a coin, hidden from the interviewer.
+The student agrees to answer honestly if the coin comes up heads.
+Otherwise, if the coin comes up tails, the student (secretly) flips the coin again, and answers “Yes, I did cheat” if the coin flip lands heads, and “No, I did not cheat”, if the coin flip lands tails.
+This way, the interviewer does not know if a “Yes” was the result of a guilty plea, or a Heads on a second coin toss.
+Thus privacy is preserved and the researchers receive honest answers.
 
-Suppose site A was shown to N people, and n people purchased from the site. One might conclude hastily that p_A = n / N. Unfortunately, the observed frequency  does not necessarily equal p_A - there is a difference between the observed frequency and the true frequency of an event. We are interested in using what we know, N (the total trials administered) and n (the number of conversions), to estimate what p_A, the true frequency of buyers, might be.
+┬ cheat = no  ┬ 1st flip = tails ┬ 2nd flip = tails » answer = no
+|             |                  └ 2nd flip = heads » answer = YES
+|             └ 1st flip = heads                    » answer = no
+└ cheat = yes ┬ 1st flip = tails ┬ 2nd flip = tails » answer = no
+              |                  └ 2nd flip = heads » answer = YES
+              └ 1st flip = heads                    » answer = YES
+►►► prob_yes = .5 × prob_cheat + .5² (0.5 = prob flip coin)
 */
 
 data {
@@ -9,10 +19,20 @@ data {
 	int<lower=0, upper=N> occur;
 }
 
+transformed data {
+	real<lower=0, upper=1> prob_coin = .5;
+	real<lower=0, upper=1> flip1 = binomial_rng(N, prob_coin) * 1. / N; // trick to make int->real
+	real<lower=0, upper=1> flip2 = binomial_rng(N, prob_coin) * 1. / N;
+}
+
 parameters {
-	real<lower=0, upper=1> probA;
+	real<lower=0, upper=1> prob_cheat;
+}
+
+transformed parameters {
+	real<lower=0, upper=1> prob_yes = flip1 * prob_cheat + (1 - flip1) * flip2;
 }
 
 model {
-	occur ~ binomial(N, probA);
+	occur ~ binomial(N, prob_yes);
 }

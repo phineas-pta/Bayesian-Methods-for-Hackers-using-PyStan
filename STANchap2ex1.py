@@ -1,5 +1,14 @@
 # -*- coding: utf-8 -*-
 
+"""
+You are given a series of daily text-message counts from a user of your system. You are curious to know if the user’s text-messaging habits have changed over time, either gradually or suddenly. How can you model this?
+
+text-message count of day i: Cᵢ ~ Poisson(λ)
+λ = λ₁ if day < τ, λ₂ if day ≥ τ, with τ = switchpoint (user’s text-messaging habits change), if λ₁ = λ₂ then no change
+λ₁ ~ Exp(α) and λ₂ ~ Exp(α)
+τ ~ Unif(1, N)
+"""
+
 import numpy as np, arviz as az, matplotlib.pyplot as plt
 from cmdstanpy import CmdStanModel
 

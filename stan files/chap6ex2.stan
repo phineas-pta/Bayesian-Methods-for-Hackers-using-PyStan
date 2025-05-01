@@ -1,5 +1,10 @@
 /*
 modelling daily stock return
+stocks: AAPL, GOOG, TSLA, AMZN
+date: 2012/09/01 → 2015/04/27
+
+Suppose Sᵢ is the price of the stock on day i then the daily return on that day is:
+rᵢ = Sᵢ / Sᵢ₋₁ - 1
 
 this code is an optimized version with Bartlett decomposition, see stan doc for details: https://mc-stan.org/docs/stan-users-guide/efficiency-tuning.html
 */

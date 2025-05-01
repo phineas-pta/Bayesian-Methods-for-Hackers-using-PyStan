@@ -1,5 +1,21 @@
 # -*- coding: utf-8 -*-
 
+"""
+In the interview process for each student, the student flips a coin, hidden from the interviewer.
+The student agrees to answer honestly if the coin comes up heads.
+Otherwise, if the coin comes up tails, the student (secretly) flips the coin again, and answers “Yes, I did cheat” if the coin flip lands heads, and “No, I did not cheat”, if the coin flip lands tails.
+This way, the interviewer does not know if a “Yes” was the result of a guilty plea, or a Heads on a second coin toss.
+Thus privacy is preserved and the researchers receive honest answers.
+
+┬ cheat = no  ┬ 1st flip = tails ┬ 2nd flip = tails » answer = no
+|             |                  └ 2nd flip = heads » answer = YES
+|             └ 1st flip = heads                    » answer = no
+└ cheat = yes ┬ 1st flip = tails ┬ 2nd flip = tails » answer = no
+              |                  └ 2nd flip = heads » answer = YES
+              └ 1st flip = heads                    » answer = YES
+►►► prob_yes = .5 × prob_cheat + .5² (0.5 = prob flip coin)
+"""
+
 import numpy as np, arviz as az, matplotlib.pyplot as plt
 from cmdstanpy import CmdStanModel
 rng = np.random.default_rng(seed = 123) # newly introduced type of random generator

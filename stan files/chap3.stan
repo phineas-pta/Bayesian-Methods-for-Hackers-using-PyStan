@@ -1,7 +1,7 @@
 /*
-data generation algorithm:
+data creation algorithm:
 For each data point, choose cluster 1 with probability p, else choose cluster 2.
-Draw a random variate from a Normal distribution with parameters μ_i and σ_i where i was cluster chosen previously in step 1.
+Draw a random variate from a Normal(μᵢ, σᵢ) distribution where i was cluster chosen previously in step 1.
 */
 
 data {

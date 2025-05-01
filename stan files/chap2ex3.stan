@@ -1,38 +1,29 @@
 /*
-In the interview process for each student, the student flips a coin, hidden from the interviewer.
-The student agrees to answer honestly if the coin comes up heads.
-Otherwise, if the coin comes up tails, the student (secretly) flips the coin again, and answers “Yes, I did cheat” if the coin flip lands heads, and “No, I did not cheat”, if the coin flip lands tails.
-This way, the interviewer does not know if a “Yes” was the result of a guilty plea, or a Heads on a second coin toss.
-Thus privacy is preserved and the researchers receive honest answers.
+On 1986/01/28, the 25th flight of the USA space shuttle program ended in disaster when one of the rocket boosters of the Shuttle Challenger exploded shortly after lift-off, killing all 7 crew members.
+The presidential commission on the accident concluded that it was caused by the failure of an O-ring in a field joint on the rocket booster, and that this failure was due to a faulty design that made the O-ring unacceptably sensitive to a number of factors including outside temperature.
+Of the previous 24 flights, data were available on failures of O-rings on 23, (one was lost at sea), and these data were discussed on the evening preceding the Challenger launch, but unfortunately only the data corresponding to the 7 flights on which there was a damage incident were considered important and these were thought to show no obvious trend.
 
-┬ cheat = no  ┬ 1st flip = tails ┬ 2nd flip = tails » answer = no
-|             |                  └ 2nd flip = heads » answer = YES
-|             └ 1st flip = heads                    » answer = no
-└ cheat = yes ┬ 1st flip = tails ┬ 2nd flip = tails » answer = no
-              |                  └ 2nd flip = heads » answer = YES
-              └ 1st flip = heads                    » answer = YES
-►►► prob_yes = .5 × prob_cheat + .5² (0.5 = prob flip coin)
+observation: probability of damage incidents occurring increases as the outside temperature decreases:
+probability = 1 / (1 + exp(α + β × temperature))
 */
 
 data {
 	int<lower=0> N;
-	int<lower=0, upper=N> occur;
-}
-
-transformed data {
-	real<lower=0, upper=1> prob_coin = .5;
-	real<lower=0, upper=1> flip1 = binomial_rng(N, prob_coin) * 1. / N; // trick to make int->real
-	real<lower=0, upper=1> flip2 = binomial_rng(N, prob_coin) * 1. / N;
+	vector[N] temp; // temperature
+	int<lower=0> dam; // damage or not
 }
 
 parameters {
-	real<lower=0, upper=1> prob_cheat;
+	real alpha;
+	real bbeta; // `beta` is built-in distrib fx
 }
 
 transformed parameters {
-	real<lower=0, upper=1> prob_yes = flip1 * prob_cheat + (1 - flip1) * flip2;
+	vector[N] prob = 1 ./ (1 + exp(bbeta * temp + alpha)); // element-wise
 }
 
 model {
-	occur ~ binomial(N, prob_yes);
+	alpha ~ normal(0, 1000);
+	bbeta ~ normal(0, 1000);
+	dam ~ binomial(N, prob);
 }
